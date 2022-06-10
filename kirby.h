@@ -1,5 +1,4 @@
-u16 kirbyPalLen = 16;
-u16 kirbyPal[16] = {
+const u16 kirbyPal[] = {
 	0x0EA4, 
 	0x0CAE, 
 	0x0A8E, 
@@ -9,16 +8,9 @@ u16 kirbyPal[16] = {
 	0x040A, 
 	0x04A4, 
 	0x040C, 
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
 };
-u32 kirbyTilesLen = 8;
-u32 kirbyTiles[8] = {
+const u16 kirbyPalLen = 9;
+const u32 kirbyTiles[] = {
 	0x00000000, 
 	0x00111100, 
 	0x01111110, 
@@ -28,3 +20,4 @@ u32 kirbyTiles[8] = {
 	0x06221160, 
 	0x76887687, 
 };
+const u16 kirbyTilesLen = 8;

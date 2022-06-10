@@ -25,6 +25,7 @@ SHELL := /usr/bin/sh
 RM := /usr/bin/rm
 CP := /usr/bin/cp
 CC := $(BIN)gcc
+CPP := $(BIN)g++
 LD := $(BIN)ld
 NM := $(BIN)nm
 JAVA := java
@@ -37,6 +38,7 @@ BINTOS := $(BIN)/bintos
 RESCOMP := $(JAVA) -jar $(BIN)/rescomp.jar
 MKDIR := /usr/bin/mkdir
 
+SRC_CPP += $(wildcard *.cpp)
 SRC_C = $(wildcard *.c)
 SRC_C += $(wildcard $(SRC)/*.c)
 SRC_C += $(wildcard $(SRC)/*/*.c)
@@ -73,6 +75,7 @@ OBJ += $(SRC_S80:.s80=.o)
 OBJ += $(SRC_ASM:.asm=.o)
 OBJ += $(SRC_S:.s=.o)
 OBJ += $(SRC_C:.c=.o)
+OBJ += $(SRC_CPP:.cpp=.o)
 OBJS := $(addprefix out/, $(OBJ))
 
 DEPS := $(OBJS:.o=.d)
@@ -182,6 +185,10 @@ $(SRC)/boot/rom_head.c: $(LIBSRC)/boot/rom_head.c
 out/%.lst: %.c
 	$(MKDIR) -p $(dir $@)
 	$(CC) $(FLAGS) -c $< -o $@
+
+out/%.o: %.cpp
+	$(MKDIR) -p $(dir $@)
+	$(CPP) $(FLAGS) -MMD -c $< -o $@
 
 out/%.o: %.c
 	$(MKDIR) -p $(dir $@)

@@ -39,22 +39,23 @@ def tofile(filename, img):
     with open(filename, 'w+') as fp:
 
         pal = []
-        fp.write('u16 %sPalLen = 16;\n' % (suffix))
-        fp.write('u16 %sPal[16] = {\n' % (suffix))
+        fp.write('const u16 %sPal[] = {\n' % (suffix))
         for row in img:
             for pix in row:
                 if(pix not in pal):
                     pal.append(pix)
                     fp.write('\t0x%04X, \n' %
                              ((pix[0] << 9) + (pix[1] << 5) + (pix[2] << 1)))
-        for _ in range(len(pal), 16):
-            fp.write('\t0x0000,\n')
+        # for _ in range(len(pal), 16):
+        #     fp.write('\t0x0000,\n')
         fp.write('};\n')
+        fp.write('const u16 %sPalLen = %i;\n' % (suffix, len(pal)))
         print('palette: '+str(pal))
 
-        fp.write('u32 %sTilesLen = 8;\n' % (suffix))
-        fp.write('u32 %sTiles[] = {\n' % (suffix))
+        
+        fp.write('const u32 %sTiles[] = {\n' % (suffix))
 
+        tilesLen = 0
         for col_i in range(0, len(img[0]), 8):
             for row_i in range(0, len(img), 8):
                 for row in img[row_i:(row_i+8)]:
@@ -67,7 +68,9 @@ def tofile(filename, img):
                         index = pal.index(row[j])
                         fp.write('%X' % (index))
                     fp.write(', \n')
+                    tilesLen += 1
         fp.write('};\n')
+        fp.write('const u16 %sTilesLen = %i;\n' % (suffix, tilesLen))
 
 
 tofile(os.path.splitext(args.imagefile)[0] + '.h', img)

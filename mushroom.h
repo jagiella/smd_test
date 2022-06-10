@@ -1,24 +1,10 @@
-u16 mushroomPalLen = 16;
-u16 mushroomPal[16] = {
+const u16 mushroomPal[] = {
 	0x0000, 
 	0x000E, 
 	0x0EEE, 
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
-	0x0000,
 };
-u32 mushroomTilesLen = 8;
-u32 mushroomTiles[] = {
+const u16 mushroomPalLen = 3;
+const u32 mushroomTiles[] = {
 	0x00000000, 
 	0x00000111, 
 	0x00022111, 
@@ -52,3 +38,4 @@ u32 mushroomTiles[] = {
 	0x22220000, 
 	0x00000000, 
 };
+const u16 mushroomTilesLen = 32;
