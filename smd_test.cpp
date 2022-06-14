@@ -5,6 +5,7 @@ extern "C" {
 #include "kirby.h"
 #include "mushroom.h"
 #include "bgA.h"
+#include "bgB.h"
 
 class Sprites {
 	int maxlen;
@@ -57,12 +58,14 @@ int main(bool hardReset) {
 	VDP_setScreenWidth320();
 	SYS_disableInts();
 	// PALETTES
-	u16 kirbyPid = PAL1;
-	u16 mushroomPid = PAL2;
-	u16 bgaPid = PAL3;
+	u16 kirbyPid = PAL0;
+	u16 mushroomPid = PAL1;
+	u16 bgaPid = PAL2;
+	u16 bgbPid = PAL3;
 	VDP_setPalette(kirbyPid, kirbyPal);
 	VDP_setPalette(mushroomPid, mushroomPal);
 	VDP_setPalette(bgaPid, bgAPal);
+	VDP_setPalette(bgbPid, bgBPal);
 //
 //	// TILES
 	Tiles tileEngine;
@@ -83,13 +86,16 @@ int main(bool hardReset) {
 	bg_a.numTile = bgATilesLen / 8;
 	bg_a.tiles = bgATiles;*/
 	u16 bgaTid = tileEngine.add(bgATiles, bgATilesLen);
+	u16 bgbTid = tileEngine.add(bgBTiles, bgBTilesLen);
 
 	TileMap map;
 	map.compression = COMPRESSION_NONE;
 	map.h = 32;
 	map.w = 64;
 	map.tilemap = bgATileMap;
-	VDP_setTileMapEx(BG_A, &map, TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0,  0, 0, 64, 32, DMA);
+	VDP_setTileMapEx(BG_B, &map, TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0,  0, 0, 64, 32, DMA);
+	map.tilemap = bgBTileMap;
+	VDP_setTileMapEx(BG_A, &map, TILE_ATTR_FULL(bgbPid, TRUE, FALSE, FALSE, bgbTid), 0, 0,  0, 0, 64, 32, DMA);
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
