@@ -13,7 +13,14 @@ import os
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('imagefile', type=str,
                     help='an integer for the accumulator')
+parser.add_argument('-m', dest='map', nargs='?', choices=['!'], default='!', help='Include or exclude map data [exc]')
+parser.add_argument('-mR', dest='map_reduction', nargs='*', choices=['t','p','f'], default=['t','p','f'], help='Tile reduction: (t)iles, (p)al, (f)lipped [Rtpf]')
+parser.add_argument('-mu', dest='map_dtype', choices=['8','16','32'], default='16', help='Map data type: u8, u16, u32 [u16]')
+parser.add_argument('-gT', dest='transparent_color', default='FF00FF', help='Transparent color; rrggbb hex or 16bit BGR hex [FF00FF]')
+parser.print_help()
 args = parser.parse_args(sys.argv[1:])
+
+print(args)
 
 img = cv2.imread(args.imagefile)
 
@@ -31,7 +38,11 @@ img = rgb888to333(img)
 # print(img)
 
 def getPalette(img):
-    pal = []
+    # transparent color
+    tCol = [int(args.transparent_color[i:i+2], 16)>>5 for i in range(0,6,2)]
+    print(tCol)
+    
+    pal = [tCol]
     for row in img:
         for pix in row:
             if(pix not in pal):
@@ -51,17 +62,45 @@ def getTiles(img, pal):
         tiles.append(tiles_row)
     return tiles
 
+def hflip(tile):
+    flipped = [tile[j] for i in range(0, len(tile), 8) for j in reversed(range(i, i+8))]
+    return flipped
+
+def vflip(tile):
+    flipped = [tile[j] for i in reversed(range(0, len(tile), 8)) for j in range(i, i+8)]
+    return flipped
+
+# def vflip(tile):
+#     flipped = [tile[j] for i in reversed(range(0, len(tile), 8)) for j in range(i, i+8)]
+#     return flipped
+
 def getTilemap(tiles):
     redTiles = []
     tileMap = []
     for tiles_row in tiles:
         tileMap_row = []
         for tile in tiles_row:
-            if(tile not in redTiles):
+            
+            h,v = 0,0
+            if(tile in redTiles):
+                index = redTiles.index(tile)
+            elif(hflip(tile) in redTiles):
+                index = redTiles.index(hflip(tile))
+                h=1
+            elif(vflip(tile) in redTiles):
+                index = redTiles.index(vflip(tile))
+                v=1
+            elif(vflip(hflip(tile)) in redTiles):
+                index = redTiles.index(vflip(hflip(tile)))
+                h,v=1,1
+            else:
+                index = len(redTiles)
                 redTiles.append(tile)
-            index = redTiles.index(tile)
+                # print('flipped found')
+            
+            # index = redTiles.index(tile)
             # print(index)
-            tileMap_row.append(index)
+            tileMap_row.append((index,h,v))
         tileMap.append(tileMap_row)
     return tileMap, redTiles
 
@@ -89,7 +128,8 @@ def writeTiles(fp, suffix, tiles):
     
 
 
-def tofile(filename, img):
+def spritesToFile(filename, img):
+    print('sprite(s):')
     base = os.path.basename(filename)
     suffix = os.path.splitext(base)[0]
     print(suffix)
@@ -106,6 +146,7 @@ def tofile(filename, img):
 # tofile(os.path.splitext(args.imagefile)[0] + '.h', img)
 
 def tilemapToFile(filename, img):
+    print('tile map:')
     pal = getPalette(img)
     tiles = getTiles(img, pal)
     tileMap, redTiles = getTilemap(tiles)
@@ -125,15 +166,18 @@ def tilemapToFile(filename, img):
         # tilemap
         fp.write('u16 %sTileMap[] = {\n' % (suffix))
         for tileMapRow in tileMap:
-            for tileIndex in tileMapRow:
-                print(tileIndex)
+            for tileIndex,hflip,vflip in tileMapRow:
+                # print(tileIndex)
                 prio = 0
                 palID = 0
-                vflip = 0
-                hflip = 0
+                # vflip = 0
+                # hflip = 0
                 fp.write('\t0x%X, \n' % ((prio<<15) + (palID<<13) + (vflip<<12) + (hflip<<11) + tileIndex))
         fp.write('};\n')
     # print(tileMap)
-    
-tilemapToFile(os.path.splitext(args.imagefile)[0] + '.h', img)
+
+if(args.map != '!'):
+    tilemapToFile(os.path.splitext(args.imagefile)[0] + '.h', img)
+else:
+    spritesToFile(os.path.splitext(args.imagefile)[0] + '.h', img)
     
