@@ -28,10 +28,10 @@ public:
 		n++;
 	}
 
-	void setX(int index, s16 x){
+	void setX(int index, s16 x) {
 		sprites[index].x = x + 0x80;
 	}
-	void setY(int index, s16 y){
+	void setY(int index, s16 y) {
 		sprites[index].y = y + 0x80;
 	}
 
@@ -55,40 +55,81 @@ public:
 	}
 };
 
-class Player{
+class Player {
 private:
 	s16 m_x, m_y;
+	u16 m_w, m_h;
 	s16 m_speed[2];
-//	f16 m_speed[2];
+//	float f_speed[2];
+//	float f_x, f_y;
 public:
-	Player(s16 x, s16 y): m_x(x), m_y(y){
+	Player(s16 x, s16 y, u16 w, u16 h) :
+			m_x(x), m_y(y), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
+//		f_speed[0] = 0;
+//		f_speed[1] = 0;
+//		f_x = 0;
+//		f_y = 0;
 	}
-	s16 x(){return (s16)m_x;}
-	s16 y(){return (s16)m_y;}
-	void update(TileMap *collision){
-		u16 joy_state = JOY_readJoypad(JOY_1);
-
-		if(joy_state & BUTTON_UP)
-			m_y--;
-		if(joy_state & BUTTON_DOWN)
-			m_y++;
-		if(joy_state & BUTTON_LEFT)
-			m_x--;
-		if(joy_state & BUTTON_RIGHT)
-			m_x++;
-
-		if(onGround(collision) == FALSE)
-			m_y ++;
+	s16 x() {
+		return (s16) m_x/8;
 	}
-	bool onGround(TileMap *collision){
-		u16 i_x = (u16)(m_x/8);
-		u16 i_y = (u16)(m_y/8);
+	s16 y() {
+		return (s16) m_y/8;
+	}
+	void update(TileMap *collision, u16 joypad) {
+		u16 joy_state = JOY_readJoypad(joypad);
+		char on_ground = onGround(collision);
+
+		bool jump = (on_ground) and (joy_state & BUTTON_UP);
+		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
+
+		s16 jumpSpeed = 40;
+		s16 maxGravity   = 2;
+		s16 maxFallSpeed = 30;
+
+		if(jump)
+			m_speed[1] = jumpSpeed;
+
+		if(!jumpHeld and !on_ground){
+			m_speed[1] = max(m_speed[1]-maxGravity, - maxFallSpeed);
+		}else
+			if(jumpHeld and !on_ground){
+				m_speed[1] = max(m_speed[1]-maxGravity/2, - maxFallSpeed);
+			}
+
+		if(on_ground and !jump){
+			// stop
+			m_speed[1] = 0;
+		}else{
+			// move
+			m_y -= m_speed[1];
+		}
+//		if (joy_state & BUTTON_UP)
+//			m_y--;
+//		if (joy_state & BUTTON_DOWN)
+//			m_y++;
+		if (joy_state & BUTTON_LEFT)
+			m_x-=8;
+		if (joy_state & BUTTON_RIGHT)
+			m_x+=8;
+//
+//		if (onGround(collision) == FALSE)
+//			m_y++;
+//		else{
+//
+//		}
+	}
+	bool onGround(TileMap *collision) {
+		u16 i_x = (u16) x();
+		u16 i_y = (u16) y() + m_h;
 
 		u16 empty = collision->tilemap[0];
 
-		if(collision->tilemap[i_x + collision->w*i_y] != empty)
+		u16 tid = (i_x >> 3) + collision->w * (i_y >> 3);
+
+		if (collision->tilemap[tid] != empty)
 			return TRUE;
 		else
 			return FALSE;
@@ -123,9 +164,9 @@ int main(bool hardReset) {
 
 	// BACKGROUND
 	/*TileSet bg_a;
-	bg_a.compression = COMPRESSION_NONE;
-	bg_a.numTile = bgATilesLen / 8;
-	bg_a.tiles = bgATiles;*/
+	 bg_a.compression = COMPRESSION_NONE;
+	 bg_a.numTile = bgATilesLen / 8;
+	 bg_a.tiles = bgATiles;*/
 	u16 bgaTid = tileEngine.add(bgATiles, bgATilesLen);
 	u16 bgbTid = tileEngine.add(bgBTiles, bgBTilesLen);
 
@@ -134,14 +175,18 @@ int main(bool hardReset) {
 	map.h = 32;
 	map.w = 64;
 	map.tilemap = bgBTileMap;
-	VDP_setTileMapEx(BG_B, &map, TILE_ATTR_FULL(bgbPid, FALSE, FALSE, FALSE, bgbTid), 0, 0,  0, 0, 64, 32, DMA);
+	VDP_setTileMapEx(BG_B, &map,
+			TILE_ATTR_FULL(bgbPid, FALSE, FALSE, FALSE, bgbTid), 0, 0, 0, 0, 64,
+			32, DMA);
 	map.tilemap = bgATileMap;
-	VDP_setTileMapEx(BG_A, &map, TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0,  0, 0, 64, 32, DMA);
+	VDP_setTileMapEx(BG_A, &map,
+			TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0, 0, 0, 64,
+			32, DMA);
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
-	Player player(0, 0);
-
+	Player player0(0, 0, 8, 8);
+	Player player1(0, 0, 32, 32);
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
@@ -149,9 +194,14 @@ int main(bool hardReset) {
 		// nothing to do here
 		// ...
 
-		player.update(&map);
-		spriteEngine.setX(0,player.x());
-		spriteEngine.setY(0,player.y());
+		player0.update(&map, JOY_1);
+		spriteEngine.setX(0, player0.x());
+		spriteEngine.setY(0, player0.y());
+
+		player1.update(&map, JOY_2);
+		spriteEngine.setX(1, player1.x());
+		spriteEngine.setY(1, player1.y());
+
 		spriteEngine.update();
 
 		// always call this method at the end of the frame
