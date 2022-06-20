@@ -56,6 +56,8 @@ public:
 };
 
 #define SUBPIXELS 8
+#define ABS(x) (x<0 ? (-x) : x )
+#define SIGN(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
 
 class Player {
 private:
@@ -113,10 +115,31 @@ public:
 //			m_y--;
 //		if (joy_state & BUTTON_DOWN)
 //			m_y++;
-		if (joy_state & BUTTON_LEFT)
-			m_x-=8;
-		if (joy_state & BUTTON_RIGHT)
-			m_x+=8;
+		m_speed[0]=0;
+		if (joy_state & BUTTON_LEFT){
+			m_speed[0]-=8;
+		}
+		if (joy_state & BUTTON_RIGHT){
+			m_speed[0]=+8;
+		}
+		m_x += m_speed[0];
+
+		// raster line
+//		s16 x1 = m_x;
+//		s16 y1 = m_y;
+//		s16 x2 = m_x+m_speed[0];
+//		s16 y2 = m_y+m_speed[1];
+//		s16 dx = x2 - x1;
+//		s16 dy = y2 - y1;
+//		if(ABS(dx) > ABS(dy)){
+//			for (m_x=x1; m_x != x2; m_x+=1)
+//				m_y = y1 + dy; //* (m_x - x1) / dx;
+//		}
+//		else{
+//			for (; m_y != y2; m_y+=SIGN(dy))
+//				m_x = x1 + dx * (m_y - y1) / dy;
+//		}
+
 //
 //		if (onGround(collision) == FALSE)
 //			m_y++;
