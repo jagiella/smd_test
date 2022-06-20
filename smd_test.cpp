@@ -55,8 +55,11 @@ public:
 	}
 };
 
+#define SUBPIXELS 8
+
 class Player {
 private:
+//	const s16 subpixels = 8;
 	s16 m_x, m_y;
 	u16 m_w, m_h;
 	s16 m_speed[2];
@@ -64,7 +67,7 @@ private:
 //	float f_x, f_y;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x), m_y(y), m_w(w), m_h(h) {
+			m_x(x*SUBPIXELS), m_y(y*SUBPIXELS), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 //		f_speed[0] = 0;
@@ -73,10 +76,10 @@ public:
 //		f_y = 0;
 	}
 	s16 x() {
-		return (s16) m_x/8;
+		return (s16) m_x/SUBPIXELS;
 	}
 	s16 y() {
-		return (s16) m_y/8;
+		return (s16) m_y/SUBPIXELS;
 	}
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
