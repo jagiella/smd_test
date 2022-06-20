@@ -4,6 +4,7 @@ extern "C" {
 ;
 #include "kirby.h"
 #include "mushroom.h"
+#include "quietschi.h"
 #include "bgA.h"
 #include "bgB.h"
 
@@ -54,6 +55,46 @@ public:
 	}
 };
 
+class Player{
+private:
+	s16 m_x, m_y;
+	s16 m_speed[2];
+//	f16 m_speed[2];
+public:
+	Player(s16 x, s16 y): m_x(x), m_y(y){
+		m_speed[0] = 0;
+		m_speed[1] = 0;
+	}
+	s16 x(){return (s16)m_x;}
+	s16 y(){return (s16)m_y;}
+	void update(TileMap *collision){
+		u16 joy_state = JOY_readJoypad(JOY_1);
+
+		if(joy_state & BUTTON_UP)
+			m_y--;
+		if(joy_state & BUTTON_DOWN)
+			m_y++;
+		if(joy_state & BUTTON_LEFT)
+			m_x--;
+		if(joy_state & BUTTON_RIGHT)
+			m_x++;
+
+		if(onGround(collision) == FALSE)
+			m_y ++;
+	}
+	bool onGround(TileMap *collision){
+		u16 i_x = (u16)(m_x/8);
+		u16 i_y = (u16)(m_y/8);
+
+		u16 empty = collision->tilemap[0];
+
+		if(collision->tilemap[i_x + collision->w*i_y] != empty)
+			return TRUE;
+		else
+			return FALSE;
+	}
+};
+
 int main(bool hardReset) {
 	VDP_setScreenWidth320();
 	SYS_disableInts();
@@ -63,20 +104,20 @@ int main(bool hardReset) {
 	u16 bgaPid = PAL2;
 	u16 bgbPid = PAL3;
 	VDP_setPalette(kirbyPid, kirbyPal);
-	VDP_setPalette(mushroomPid, mushroomPal);
+	VDP_setPalette(mushroomPid, quietschiPal);
 	VDP_setPalette(bgaPid, bgAPal);
 	VDP_setPalette(bgbPid, bgBPal);
 //
 //	// TILES
 	Tiles tileEngine;
 	u16 kirbyTid = tileEngine.add(kirbyTiles, kirbyTilesLen);
-	u16 mushroomTid = tileEngine.add(mushroomTiles, mushroomTilesLen);
+	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
 
 	// SPRITES
 	Sprites spriteEngine(128);
 	spriteEngine.add(10, 10, SPRITE_SIZE(1, 1),
 			TILE_ATTR_FULL(kirbyPid, 1, 0, 0, kirbyTid));
-	spriteEngine.add(100, 100, SPRITE_SIZE(2, 2),
+	spriteEngine.add(140, 72, SPRITE_SIZE(4, 4),
 			TILE_ATTR_FULL(mushroomPid, 1, 0, 0, mushroomTid));
 	spriteEngine.update();
 
@@ -92,32 +133,25 @@ int main(bool hardReset) {
 	map.compression = COMPRESSION_NONE;
 	map.h = 32;
 	map.w = 64;
-	map.tilemap = bgATileMap;
-	VDP_setTileMapEx(BG_B, &map, TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0,  0, 0, 64, 32, DMA);
 	map.tilemap = bgBTileMap;
-	VDP_setTileMapEx(BG_A, &map, TILE_ATTR_FULL(bgbPid, TRUE, FALSE, FALSE, bgbTid), 0, 0,  0, 0, 64, 32, DMA);
+	VDP_setTileMapEx(BG_B, &map, TILE_ATTR_FULL(bgbPid, FALSE, FALSE, FALSE, bgbTid), 0, 0,  0, 0, 64, 32, DMA);
+	map.tilemap = bgATileMap;
+	VDP_setTileMapEx(BG_A, &map, TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0,  0, 0, 64, 32, DMA);
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
+
+	Player player(0, 0);
 
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
-	s16 x=10,y=10;
 	while (true) {
 		// nothing to do here
 		// ...
 
-		u16 joy_state = JOY_readJoypad(JOY_1);
-		if(joy_state & BUTTON_UP)
-			y--;
-		if(joy_state & BUTTON_DOWN)
-			y++;
-		if(joy_state & BUTTON_LEFT)
-			x--;
-		if(joy_state & BUTTON_RIGHT)
-			x++;
-		spriteEngine.setX(0,x);
-		spriteEngine.setY(0,y);
+		player.update(&map);
+		spriteEngine.setX(0,player.x());
+		spriteEngine.setY(0,player.y());
 		spriteEngine.update();
 
 		// always call this method at the end of the frame
