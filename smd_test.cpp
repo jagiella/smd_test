@@ -109,7 +109,7 @@ public:
 			m_speed[1] = 0;
 		}else{
 			// move
-			m_y -= m_speed[1];
+			//m_y -= m_speed[1];
 		}
 //		if (joy_state & BUTTON_UP)
 //			m_y--;
@@ -122,22 +122,32 @@ public:
 		if (joy_state & BUTTON_RIGHT){
 			m_speed[0]=+8;
 		}
-		m_x += m_speed[0];
+//		m_x += m_speed[0];
 
 		// raster line
-//		s16 x1 = m_x;
-//		s16 y1 = m_y;
-//		s16 x2 = m_x+m_speed[0];
-//		s16 y2 = m_y+m_speed[1];
-//		s16 dx = x2 - x1;
-//		s16 dy = y2 - y1;
-//		if(ABS(dx) > ABS(dy)){
-//			for (m_x=x1; m_x != x2; m_x+=1)
-//				m_y = y1 + dy; //* (m_x - x1) / dx;
-//		}
+		s16 x1 = m_x;
+		s16 y1 = m_y;
+		s16 x2 = m_x+m_speed[0];
+		s16 y2 = m_y-m_speed[1];
+		s16 dx = x2 - x1;
+		s16 dy = y2 - y1;
+		if(abs(dx) > abs(dy)){
+			if(dx != 0)
+				for (m_x=x1; m_x!=x2; m_x+=SIGN(dx)){
+//					s16 tmp =  dy * (m_x - x1);
+////					tmp /= dx;
+//					tmp += y1;
+//					m_y = tmp;
+					while(m_y*dx != y1 + (dy * (m_x - x1)))
+						m_y = m_y + SIGN(dy);
+
+	//				m_y = y1 + (dy * (m_x - x1)) / dx;
+				}
+		}
 //		else{
-//			for (; m_y != y2; m_y+=SIGN(dy))
-//				m_x = x1 + dx * (m_y - y1) / dy;
+//			if(dy != 0)
+//				for (m_y=y1; m_y!=y2; m_y+=SIGN(dy))
+//					m_x = x1 + (dx * (m_y - y1));// / dy;
 //		}
 
 //
