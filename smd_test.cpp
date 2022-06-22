@@ -70,7 +70,7 @@ private:
 //	float f_x, f_y;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x), m_y(y), m_w(w), m_h(h) {
+			m_x(x * SUBPIXELS), m_y(y * SUBPIXELS), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 //		f_speed[0] = 0;
@@ -86,7 +86,9 @@ public:
 	}
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
+		m_y ++;
 		char on_ground = onGround(collision);
+		m_y --;
 
 		bool jump = (on_ground) and (joy_state & BUTTON_UP);
 		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
@@ -109,7 +111,7 @@ public:
 			m_speed[1] = 0;
 		} else {
 			// move
-			m_y -= m_speed[1];
+//			m_y -= m_speed[1];
 		}
 //		if (joy_state & BUTTON_UP)
 //			m_y--;
@@ -122,16 +124,16 @@ public:
 		if (joy_state & BUTTON_RIGHT) {
 			m_speed[0] = +7;
 		}
-		m_x += m_speed[0];
+//		m_x += m_speed[0];
 
-		// raster line
+// raster line
 		s16 x2 = m_x + m_speed[0];
 		s16 y2 = m_y - m_speed[1];
-		s16 nx = ABS(x2 - m_x);
-		s16 ny = ABS(y2 - m_y);
-		s16 sx = sign(x2 - m_x);
-		s16 sy = sign(y2 - m_y);
-		s16 d, D0, DN0;
+		s16 nx = ABS(m_speed[0]);
+		s16 ny = ABS(m_speed[1]);
+		s16 sx = sign(m_speed[0]);
+		s16 sy = sign(-m_speed[1]);
+		s16 d, D0, DN0, dx, dy;
 		if (nx > ny) {
 			d = 2 * ny - nx;
 			D0 = 2 * ny;
@@ -139,14 +141,40 @@ public:
 			while (m_x != x2) {
 				if (d <= 0) {
 					d = d + D0;
+					dy = 0;
 				} else {
 					d = d + DN0;
 					m_y += sy;
+					dy = sy;
 				}
 				m_x += sx;
+				if (onGround(collision)) {
+					m_x -= sx;
+					m_y -= dy;
+					break;
+				}
+			}
+		} else {
+			d = 2 * nx - ny;
+			D0 = 2 * nx;
+			DN0 = 2 * (nx - ny);
+			while (m_y != y2) {
+				if (d <= 0) {
+					d = d + D0;
+					dx = 0;
+				} else {
+					d = d + DN0;
+					m_x += sx;
+					dx = sx;
+				}
+				m_y += sy;
+				if (onGround(collision)) {
+					m_x -= dx;
+					m_y -= sy;
+					break;
+				}
 			}
 		}
-
 
 //
 //		if (onGround(collision) == FALSE)
@@ -219,8 +247,8 @@ int main(bool hardReset) {
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
-	Player player0(0, 0, 8, 8);
-	Player player1(0, 0, 32, 32);
+	Player player0(20, 0, 8, 8);
+	Player player1(20, 0, 32, 32);
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
