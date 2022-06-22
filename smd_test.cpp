@@ -56,8 +56,9 @@ public:
 };
 
 #define SUBPIXELS 8
-#define ABS(x) (x<0 ? (-x) : x )
-#define SIGN(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
+#define ABS(x) ((x)<0 ? -(x) : (x) )
+//#define sign(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
+#define sign(x) ((x)<0 ? (-1) : 1 )
 
 class Player {
 private:
@@ -69,7 +70,7 @@ private:
 //	float f_x, f_y;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x*SUBPIXELS), m_y(y*SUBPIXELS), m_w(w), m_h(h) {
+			m_x(x), m_y(y), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 //		f_speed[0] = 0;
@@ -78,10 +79,10 @@ public:
 //		f_y = 0;
 	}
 	s16 x() {
-		return (s16) m_x/SUBPIXELS;
+		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16) m_y/SUBPIXELS;
+		return (s16) m_y / SUBPIXELS;
 	}
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
@@ -91,64 +92,61 @@ public:
 		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
 
 		s16 jumpSpeed = 40;
-		s16 maxGravity   = 2;
+		s16 maxGravity = 2;
 		s16 maxFallSpeed = 30;
 
-		if(jump)
+		if (jump)
 			m_speed[1] = jumpSpeed;
 
-		if(!jumpHeld and !on_ground){
-			m_speed[1] = max(m_speed[1]-maxGravity, - maxFallSpeed);
-		}else
-			if(jumpHeld and !on_ground){
-				m_speed[1] = max(m_speed[1]-maxGravity/2, - maxFallSpeed);
-			}
+		if (!jumpHeld and !on_ground) {
+			m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
+		} else if (jumpHeld and !on_ground) {
+			m_speed[1] = max(m_speed[1] - maxGravity / 2, -maxFallSpeed);
+		}
 
-		if(on_ground and !jump){
+		if (on_ground and !jump) {
 			// stop
 			m_speed[1] = 0;
-		}else{
+		} else {
 			// move
-			//m_y -= m_speed[1];
+			m_y -= m_speed[1];
 		}
 //		if (joy_state & BUTTON_UP)
 //			m_y--;
 //		if (joy_state & BUTTON_DOWN)
 //			m_y++;
-		m_speed[0]=0;
-		if (joy_state & BUTTON_LEFT){
-			m_speed[0]-=8;
+		m_speed[0] = 0;
+		if (joy_state & BUTTON_LEFT) {
+			m_speed[0] -= 7;
 		}
-		if (joy_state & BUTTON_RIGHT){
-			m_speed[0]=+8;
+		if (joy_state & BUTTON_RIGHT) {
+			m_speed[0] = +7;
 		}
-//		m_x += m_speed[0];
+		m_x += m_speed[0];
 
 		// raster line
-		s16 x1 = m_x;
-		s16 y1 = m_y;
-		s16 x2 = m_x+m_speed[0];
-		s16 y2 = m_y-m_speed[1];
-		s16 dx = x2 - x1;
-		s16 dy = y2 - y1;
-		if(abs(dx) > abs(dy)){
-			if(dx != 0)
-				for (m_x=x1; m_x!=x2; m_x+=SIGN(dx)){
-//					s16 tmp =  dy * (m_x - x1);
-////					tmp /= dx;
-//					tmp += y1;
-//					m_y = tmp;
-					while(m_y*dx != y1 + (dy * (m_x - x1)))
-						m_y = m_y + SIGN(dy);
-
-	//				m_y = y1 + (dy * (m_x - x1)) / dx;
+		s16 x2 = m_x + m_speed[0];
+		s16 y2 = m_y - m_speed[1];
+		s16 nx = ABS(x2 - m_x);
+		s16 ny = ABS(y2 - m_y);
+		s16 sx = sign(x2 - m_x);
+		s16 sy = sign(y2 - m_y);
+		s16 d, D0, DN0;
+		if (nx > ny) {
+			d = 2 * ny - nx;
+			D0 = 2 * ny;
+			DN0 = 2 * (ny - nx);
+			while (m_x != x2) {
+				if (d <= 0) {
+					d = d + D0;
+				} else {
+					d = d + DN0;
+					m_y += sy;
 				}
+				m_x += sx;
+			}
 		}
-//		else{
-//			if(dy != 0)
-//				for (m_y=y1; m_y!=y2; m_y+=SIGN(dy))
-//					m_x = x1 + (dx * (m_y - y1));// / dy;
-//		}
+
 
 //
 //		if (onGround(collision) == FALSE)
