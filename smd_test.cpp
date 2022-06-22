@@ -8,6 +8,9 @@ extern "C" {
 #include "bgA.h"
 #include "bgB.h"
 
+//#include <iterator> // For std::forward_iterator_tag
+//#include <cstddef>  // For std::ptrdiff_t
+
 class Sprites {
 	int maxlen;
 	int n;
@@ -58,7 +61,93 @@ public:
 #define SUBPIXELS 8
 #define ABS(x) ((x)<0 ? -(x) : (x) )
 //#define sign(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
-#define sign(x) ((x)<0 ? (-1) : 1 )
+#define sign(x) ((x)<0 ? (-1) : ((x)==0 ? 0 : 1) )
+
+struct Position {
+	s16 x;
+	s16 y;
+};
+
+struct LineIterator {
+
+	// Iterator constructors here...
+	LineIterator(Position pa, Position pe) :
+			m_pa(pa), m_pe(pe) {
+		s16 dx = pe.x - pa.x;
+		s16 dy = pe.y - pa.y;
+		s16 nx = ABS(dx);
+		s16 ny = ABS(dy);
+		x = (nx > ny);
+		sx = sign(dx);
+		sy = sign(dy);
+		if (nx > ny) {
+			d = 2 * ny - nx;
+			D0 = 2 * ny;
+			DN0 = 2 * (ny - nx);
+		} else {
+			d = 2 * nx - ny;
+			D0 = 2 * nx;
+			DN0 = 2 * (nx - ny);
+		}
+	}
+
+	Position operator*() const {
+		return m_pa;
+	}
+	Position* operator->() {
+		return &m_pa;
+	}
+
+	// Prefix increment
+	LineIterator& operator++() {
+
+		increase();
+		return *this;
+	}
+
+	// Postfix increment
+	LineIterator operator++(int) {
+		LineIterator tmp = *this;
+		increase();
+		return tmp;
+	}
+
+	friend bool operator!=(const LineIterator &a, const LineIterator &b) {
+		return a.m_pa.x != b.m_pa.x or a.m_pa.y != b.m_pa.y;
+	}
+	LineIterator begin() {
+		return LineIterator(m_pa, m_pe);
+	}
+	LineIterator end() {
+		return LineIterator(m_pe, m_pe);
+	}
+private:
+
+	Position m_pa;
+	Position m_pe;
+	s16 d, D0, DN0, sx, sy;
+	bool x;
+
+	void increase() {
+		if (x) {
+			if (d <= 0) {
+				d = d + D0;
+			} else {
+				d = d + DN0;
+				m_pa.y += sy;
+			}
+			m_pa.x += sx;
+		} else {
+			if (d <= 0) {
+				d = d + D0;
+			} else {
+				d = d + DN0;
+				m_pa.x += sx;
+			}
+			m_pa.y += sy;
+		}
+	}
+};
 
 class Player {
 private:
@@ -86,9 +175,9 @@ public:
 	}
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
-		m_y ++;
+		m_y++;
 		char on_ground = onGround(collision);
-		m_y --;
+		m_y--;
 
 		bool jump = (on_ground) and (joy_state & BUTTON_UP);
 		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
@@ -129,59 +218,12 @@ public:
 // raster line
 		s16 x2 = m_x + m_speed[0];
 		s16 y2 = m_y - m_speed[1];
-		s16 nx = ABS(m_speed[0]);
-		s16 ny = ABS(m_speed[1]);
-		s16 sx = sign(m_speed[0]);
-		s16 sy = sign(-m_speed[1]);
-		s16 d, D0, DN0, dx, dy;
-		if (nx > ny) {
-			d = 2 * ny - nx;
-			D0 = 2 * ny;
-			DN0 = 2 * (ny - nx);
-			while (m_x != x2) {
-				if (d <= 0) {
-					d = d + D0;
-					dy = 0;
-				} else {
-					d = d + DN0;
-					m_y += sy;
-					dy = sy;
-				}
-				m_x += sx;
-				if (onGround(collision)) {
-					m_x -= sx;
-					m_y -= dy;
-					break;
-				}
-			}
-		} else {
-			d = 2 * nx - ny;
-			D0 = 2 * nx;
-			DN0 = 2 * (nx - ny);
-			while (m_y != y2) {
-				if (d <= 0) {
-					d = d + D0;
-					dx = 0;
-				} else {
-					d = d + DN0;
-					m_x += sx;
-					dx = sx;
-				}
-				m_y += sy;
-				if (onGround(collision)) {
-					m_x -= dx;
-					m_y -= sy;
-					break;
-				}
-			}
+		LineIterator it( { m_x, m_y }, { x2, y2 });
+		for (auto p : it) {
+			m_x = p.x;
+			m_y = p.y;
+			//if (onGround(collision))
 		}
-
-//
-//		if (onGround(collision) == FALSE)
-//			m_y++;
-//		else{
-//
-//		}
 	}
 	bool onGround(TileMap *collision) {
 		u16 i_x = (u16) x();
@@ -192,9 +234,9 @@ public:
 		u16 tid = (i_x >> 3) + collision->w * (i_y >> 3);
 
 		if (collision->tilemap[tid] != empty)
-			return TRUE;
+			return true;
 		else
-			return FALSE;
+			return false;
 	}
 };
 
