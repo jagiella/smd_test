@@ -58,7 +58,7 @@ public:
 	}
 };
 
-#define SUBPIXELS 8
+#define SUBPIXELS 4
 #define ABS(x) ((x)<0 ? -(x) : (x) )
 //#define sign(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
 #define sign(x) ((x)<0 ? (-1) : ((x)==0 ? 0 : 1) )
@@ -182,9 +182,9 @@ public:
 		bool jump = (on_ground) and (joy_state & BUTTON_UP);
 		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
 
-		s16 jumpSpeed = 40;
-		s16 maxGravity = 2;
-		s16 maxFallSpeed = 30;
+		s16 jumpSpeed = SUBPIXELS*6;
+		s16 maxGravity = SUBPIXELS/2;
+		s16 maxFallSpeed = SUBPIXELS*4;
 
 		if (jump)
 			m_speed[1] = jumpSpeed;
@@ -208,10 +208,10 @@ public:
 //			m_y++;
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
-			m_speed[0] -= 7;
+			m_speed[0] -= SUBPIXELS*2;
 		}
 		if (joy_state & BUTTON_RIGHT) {
-			m_speed[0] = +7;
+			m_speed[0] += SUBPIXELS*2;
 		}
 //		m_x += m_speed[0];
 
