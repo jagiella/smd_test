@@ -220,24 +220,83 @@ public:
 		s16 y2 = m_y - m_speed[1];
 		LineIterator it( { m_x, m_y }, { x2, y2 });
 		for (auto p : it) {
-			m_x = p.x;
-			m_y = p.y;
-			//if (onGround(collision))
+			for(u8 i=0; i<7; i++)
+				it++;
+			if(p.x != m_x){
+				s16 old_x = m_x;
+				m_x = p.x;
+				if (colliding(collision))
+					m_x = old_x;
+			}
+			if(p.y != m_y){
+				s16 old_y = m_y;
+				m_y = p.y;
+				if (colliding(collision))
+					m_y = old_y;
+			}
 		}
 	}
-	bool onGround(TileMap *collision) {
-		u16 i_x = (u16) x();
-		u16 i_y = (u16) y() + m_h;
 
+	u16 pos2tid(s16 pos) {
+		u16 p = (u16) pos;
+		return p >> 3;
+	}
+
+	bool colliding(TileMap *collision) {
 		u16 empty = collision->tilemap[0];
 
-		u16 tid = (i_x >> 3) + collision->w * (i_y >> 3);
+		u16 t_x, t_y;
 
-		if (collision->tilemap[tid] != empty)
-			return true;
-		else
-			return false;
+		// top
+		t_y = pos2tid(y());
+		for (t_x = pos2tid(x()); t_x <= pos2tid(x() + m_w); t_x++) {
+			if (collision->tilemap[t_x + t_y * collision->w] != empty)
+				return true;
+		}
+		// ground
+		t_y = pos2tid(y() + m_h);
+		for (t_x = pos2tid(x()); t_x <= pos2tid(x() + m_w); t_x++) {
+			if (collision->tilemap[t_x + t_y * collision->w] != empty)
+				return true;
+		}
+
+		// left
+		t_x = pos2tid(x());
+		for (t_y = pos2tid(y()) + 1; t_y <= pos2tid(y() + m_h) - 1; t_y++) {
+			if (collision->tilemap[t_x + t_y * collision->w] != empty)
+				return true;
+		}
+		// right
+		t_x = pos2tid(x() + m_w);
+		for (t_y = pos2tid(y()) + 1; t_y <= pos2tid(y() + m_h) - 1; t_y++) {
+			if (collision->tilemap[t_x + t_y * collision->w] != empty)
+				return true;
+		}
+		return false;
 	}
+
+	bool onGround(TileMap *collision) {
+		u16 empty = collision->tilemap[0];
+		u16 t_y = pos2tid(y() + m_h);
+		for (u16 t_x = pos2tid(x()); t_x <= pos2tid(x() + m_w); t_x++) {
+			u16 tid = t_x + t_y * collision->w;
+
+			if (collision->tilemap[tid] != empty)
+				return true;
+		}
+		return false;
+	}
+//	bool onWall(TileMap *collision) {
+//		u16 empty = collision->tilemap[0];
+//		u16 t_x = pos2tid(x());
+//		for(u16 t_x = pos2tid(x()); t_x <= pos2tid(x() + m_w); t_x++){
+//			u16 tid = t_x + t_y * collision->w;
+//
+//			if (collision->tilemap[tid] != empty)
+//				return true;
+//		}
+//		return false;
+//	}
 };
 
 int main(bool hardReset) {
