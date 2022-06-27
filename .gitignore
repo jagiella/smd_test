@@ -2,3 +2,7 @@
 .cproject
 .project
 /build/
+*.o
+*.bin
+*.d
+*.out
