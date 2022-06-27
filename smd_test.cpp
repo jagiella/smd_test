@@ -37,6 +37,9 @@ public:
 	void setY(int index, s16 y) {
 		sprites[index].y = y + 0x80;
 	}
+	void setHFlip(int index, u16 hflip){
+		sprites[index].attribut = (sprites[index].attribut & (~TILE_ATTR_HFLIP_MASK)) + (hflip << TILE_ATTR_HFLIP_SFT);
+	}
 
 	void update() {
 		DMA_transfer(DMA, DMA_VRAM, sprites, VDP_SPRITE_TABLE,
@@ -155,6 +158,7 @@ private:
 	s16 m_x, m_y;
 	u16 m_w, m_h;
 	s16 m_speed[2];
+	u16 m_hflip, m_vflip;
 //	float f_speed[2];
 //	float f_x, f_y;
 public:
@@ -162,6 +166,8 @@ public:
 			m_x(x * SUBPIXELS), m_y(y * SUBPIXELS), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
+		m_hflip = 0;
+		m_vflip = 0;
 //		f_speed[0] = 0;
 //		f_speed[1] = 0;
 //		f_x = 0;
@@ -173,16 +179,18 @@ public:
 	s16 y() {
 		return (s16) m_y / SUBPIXELS;
 	}
+	u16 hflip(){return m_hflip;}
+	u16 vflip(){return m_vflip;}
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
 		m_y++;
 		char on_ground = onGround(collision);
 		m_y--;
 
-		bool jump = (on_ground) and (joy_state & BUTTON_UP);
-		bool jumpHeld = (!on_ground) and (joy_state & BUTTON_UP);
+		bool jump = (on_ground) and (joy_state & (BUTTON_A|BUTTON_UP));
+		bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A|BUTTON_UP));
 
-		s16 jumpSpeed = SUBPIXELS*6;
+		s16 jumpSpeed = SUBPIXELS*7;
 		s16 maxGravity = SUBPIXELS/2;
 		s16 maxFallSpeed = SUBPIXELS*4;
 
@@ -209,9 +217,11 @@ public:
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
 			m_speed[0] -= SUBPIXELS*2;
+			m_hflip = 1;
 		}
 		if (joy_state & BUTTON_RIGHT) {
 			m_speed[0] += SUBPIXELS*2;
+			m_hflip = 0;
 		}
 //		m_x += m_speed[0];
 
@@ -348,8 +358,8 @@ int main(bool hardReset) {
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
-	Player player0(20, 0, 8, 8);
-	Player player1(20, 0, 32, 32);
+	Player player0(20, 40, 8, 8);
+	Player player1(20, 40, 32, 32);
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
@@ -360,11 +370,12 @@ int main(bool hardReset) {
 		player0.update(&map, JOY_1);
 		spriteEngine.setX(0, player0.x());
 		spriteEngine.setY(0, player0.y());
+		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_2);
 		spriteEngine.setX(1, player1.x());
 		spriteEngine.setY(1, player1.y());
-
+		spriteEngine.setHFlip(1, player1.hflip());
 		spriteEngine.update();
 
 		// always call this method at the end of the frame
