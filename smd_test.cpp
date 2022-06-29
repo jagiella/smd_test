@@ -3,6 +3,7 @@ extern "C" {
 }
 ;
 #include "kirby.h"
+#include "mario.h"
 #include "mushroom.h"
 #include "quietschi.h"
 #include "bgA.h"
@@ -318,14 +319,16 @@ int main(bool hardReset) {
 	u16 bgaPid = PAL2;
 	u16 bgbPid = PAL3;
 	VDP_setPalette(kirbyPid, kirbyPal);
-	VDP_setPalette(mushroomPid, quietschiPal);
+	VDP_setPalette(mushroomPid, marioPal);
+//	VDP_setPalette(mushroomPid, quietschiPal);
 	VDP_setPalette(bgaPid, bgAPal);
 	VDP_setPalette(bgbPid, bgBPal);
 //
 //	// TILES
 	Tiles tileEngine;
 	u16 kirbyTid = tileEngine.add(kirbyTiles, kirbyTilesLen);
-	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
+//	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
+	u16 mushroomTid = tileEngine.add(marioTiles, 8*(4*4));
 
 	// SPRITES
 	Sprites spriteEngine(128);
