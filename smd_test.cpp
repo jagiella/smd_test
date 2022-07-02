@@ -20,6 +20,7 @@ public:
 	Sprites(int maxlen) :
 			maxlen(maxlen) {
 		n = 0;
+
 	}
 	void add(u16 x, u16 y, u8 size, u16 attr) {
 		if (n > 0)
@@ -49,16 +50,20 @@ public:
 };
 
 class Tiles {
-	int n;
+	u16 n;
 public:
 	Tiles() {
 		n = TILE_USERINDEX;
 	}
-	int add(const u32 *tiles, u16 num) {
-		int tid = n;
+	u16 add(const u32 *tiles, u16 num) {
+		u16 tid = n;
 		VDP_loadTileData(tiles, tid, num / 8, DMA);
 		n += num / 8;
 		return tid;
+	}
+
+	void update(u16 tid, const u32 *tiles, u16 num){
+		VDP_loadTileData(tiles, tid, num / 8, DMA);
 	}
 };
 
@@ -160,6 +165,7 @@ private:
 	u16 m_w, m_h;
 	s16 m_speed[2];
 	u16 m_hflip, m_vflip;
+	u8 m_aid, m_rt;
 //	float f_speed[2];
 //	float f_x, f_y;
 public:
@@ -169,6 +175,7 @@ public:
 		m_speed[1] = 0;
 		m_hflip = 0;
 		m_vflip = 0;
+		m_aid = 0;m_rt=0;
 //		f_speed[0] = 0;
 //		f_speed[1] = 0;
 //		f_x = 0;
@@ -182,6 +189,9 @@ public:
 	}
 	u16 hflip(){return m_hflip;}
 	u16 vflip(){return m_vflip;}
+	u16 animationID(){return m_aid;}
+
+
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
 		m_y++;
@@ -215,6 +225,7 @@ public:
 //			m_y--;
 //		if (joy_state & BUTTON_DOWN)
 //			m_y++;
+		//bool was_running = (m_speed[0]!=0);
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
 			m_speed[0] -= SUBPIXELS*2;
@@ -224,6 +235,19 @@ public:
 			m_speed[0] += SUBPIXELS*2;
 			m_hflip = 0;
 		}
+		bool is_running = (m_speed[0]!=0) and on_ground;
+		if(is_running){
+			m_rt ++;
+			if(m_rt == 4){
+				m_rt = 0;
+				m_aid++;
+			}
+		}else{
+			m_rt=0;
+			m_aid = 0;
+		}
+
+		//m_aid = (u16)(m_rt / 2);
 //		m_x += m_speed[0];
 
 // raster line
@@ -376,6 +400,7 @@ int main(bool hardReset) {
 		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_2);
+		tileEngine.update(mushroomTid, marioTiles+8*(4*4)*(player1.animationID()%8), 8*(4*4));
 		spriteEngine.setX(1, player1.x());
 		spriteEngine.setY(1, player1.y());
 		spriteEngine.setHFlip(1, player1.hflip());
