@@ -6,8 +6,12 @@ extern "C" {
 #include "mario.h"
 #include "mushroom.h"
 #include "quietschi.h"
+#include "char.h"
 #include "bgA.h"
 #include "bgB.h"
+#include "background.h"
+#include "foreground.h"
+#include "height.h"
 
 //#include <iterator> // For std::forward_iterator_tag
 //#include <cstddef>  // For std::ptrdiff_t
@@ -39,8 +43,9 @@ public:
 	void setY(int index, s16 y) {
 		sprites[index].y = y + 0x80;
 	}
-	void setHFlip(int index, u16 hflip){
-		sprites[index].attribut = (sprites[index].attribut & (~TILE_ATTR_HFLIP_MASK)) + (hflip << TILE_ATTR_HFLIP_SFT);
+	void setHFlip(int index, u16 hflip) {
+		sprites[index].attribut = (sprites[index].attribut
+				& (~TILE_ATTR_HFLIP_MASK)) + (hflip << TILE_ATTR_HFLIP_SFT);
 	}
 
 	void update() {
@@ -62,7 +67,7 @@ public:
 		return tid;
 	}
 
-	void update(u16 tid, const u32 *tiles, u16 num){
+	void update(u16 tid, const u32 *tiles, u16 num) {
 		VDP_loadTileData(tiles, tid, num / 8, DMA);
 	}
 };
@@ -158,6 +163,81 @@ private:
 	}
 };
 
+class PlayerIso {
+	s16 m_x, m_y, m_z;
+	u16 m_w, m_h;
+	s16 m_speed[3];
+	u8 m_aid, m_hflip, m_vflip;
+public:
+	PlayerIso() :
+			m_x(0), m_y(0), m_z(0), m_w(32), m_h(32) {
+		m_speed[0] = 0;
+		m_speed[1] = 0;
+		m_speed[2] = 0;
+		m_aid = 0;
+		m_hflip = 0;
+		m_vflip = 0;
+	}
+
+	void update(TileMap *collision, u16 joypad) {
+		u16 joy_state = JOY_readJoypad(joypad);
+
+		m_speed[0] = 0;
+		m_speed[1] = 0;
+
+		if (joy_state & BUTTON_LEFT) {
+			m_speed[0] -= SUBPIXELS * 2;
+			m_hflip = 1;
+			m_aid = (m_aid + 1) % 4;
+		}
+		if (joy_state & BUTTON_RIGHT) {
+			m_speed[0] += SUBPIXELS * 2;
+			m_hflip = 0;
+//			m_aid++;
+		}
+		if (joy_state & BUTTON_UP) {
+			m_speed[1] -= SUBPIXELS * 2;
+			m_vflip = 1;
+//			m_aid++;
+		}
+		if (joy_state & BUTTON_DOWN) {
+			m_speed[1] += SUBPIXELS * 2;
+			m_vflip = 0;
+//			m_aid++;
+		}
+
+		if (joy_state & BUTTON_A) {
+			m_speed[2] = 10;
+		} else {
+			m_speed[2]--;
+			if (m_z < 0) {
+				m_z = 0;
+				m_speed[2] = 0;
+			}
+		}
+
+		m_x += m_speed[0];
+		m_y += m_speed[1];
+		m_z += m_speed[2];
+
+	}
+	s16 x() {
+		return (s16) m_x / SUBPIXELS;
+	}
+	s16 y() {
+		return (s16) (m_y - m_z) / SUBPIXELS;
+	}
+	u16 hflip() {
+		return m_hflip;
+	}
+	u16 vflip() {
+		return m_vflip;
+	}
+	u16 animationID() {
+		return (u16)m_aid;
+	}
+};
+
 class Player {
 private:
 //	const s16 subpixels = 8;
@@ -175,7 +255,8 @@ public:
 		m_speed[1] = 0;
 		m_hflip = 0;
 		m_vflip = 0;
-		m_aid = 0;m_rt=0;
+		m_aid = 0;
+		m_rt = 0;
 //		f_speed[0] = 0;
 //		f_speed[1] = 0;
 //		f_x = 0;
@@ -187,10 +268,15 @@ public:
 	s16 y() {
 		return (s16) m_y / SUBPIXELS;
 	}
-	u16 hflip(){return m_hflip;}
-	u16 vflip(){return m_vflip;}
-	u16 animationID(){return m_aid;}
-
+	u16 hflip() {
+		return m_hflip;
+	}
+	u16 vflip() {
+		return m_vflip;
+	}
+	u16 animationID() {
+		return m_aid;
+	}
 
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
@@ -198,12 +284,12 @@ public:
 		char on_ground = onGround(collision);
 		m_y--;
 
-		bool jump = (on_ground) and (joy_state & (BUTTON_A|BUTTON_UP));
-		bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A|BUTTON_UP));
+		bool jump = (on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
+		bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
 
-		s16 jumpSpeed = SUBPIXELS*7;
-		s16 maxGravity = SUBPIXELS/2;
-		s16 maxFallSpeed = SUBPIXELS*4;
+		s16 jumpSpeed = SUBPIXELS * 7;
+		s16 maxGravity = SUBPIXELS / 2;
+		s16 maxFallSpeed = SUBPIXELS * 4;
 
 		if (jump)
 			m_speed[1] = jumpSpeed;
@@ -228,22 +314,22 @@ public:
 		//bool was_running = (m_speed[0]!=0);
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
-			m_speed[0] -= SUBPIXELS*2;
+			m_speed[0] -= SUBPIXELS * 2;
 			m_hflip = 1;
 		}
 		if (joy_state & BUTTON_RIGHT) {
-			m_speed[0] += SUBPIXELS*2;
+			m_speed[0] += SUBPIXELS * 2;
 			m_hflip = 0;
 		}
-		bool is_running = (m_speed[0]!=0) and on_ground;
-		if(is_running){
-			m_rt ++;
-			if(m_rt == 4){
+		bool is_running = (m_speed[0] != 0) and on_ground;
+		if (is_running) {
+			m_rt++;
+			if (m_rt == 4) {
 				m_rt = 0;
 				m_aid++;
 			}
-		}else{
-			m_rt=0;
+		} else {
+			m_rt = 0;
 			m_aid = 0;
 		}
 
@@ -255,15 +341,15 @@ public:
 		s16 y2 = m_y - m_speed[1];
 		LineIterator it( { m_x, m_y }, { x2, y2 });
 		for (auto p : it) {
-			for(u8 i=0; i<7; i++)
+			for (u8 i = 0; i < 7; i++)
 				it++;
-			if(p.x != m_x){
+			if (p.x != m_x) {
 				s16 old_x = m_x;
 				m_x = p.x;
 				if (colliding(collision))
 					m_x = old_x;
 			}
-			if(p.y != m_y){
+			if (p.y != m_y) {
 				s16 old_y = m_y;
 				m_y = p.y;
 				if (colliding(collision))
@@ -344,6 +430,7 @@ int main(bool hardReset) {
 	u16 bgbPid = PAL3;
 	VDP_setPalette(kirbyPid, kirbyPal);
 	VDP_setPalette(mushroomPid, marioPal);
+//	VDP_setPalette(mushroomPid, charPal);
 //	VDP_setPalette(mushroomPid, quietschiPal);
 	VDP_setPalette(bgaPid, bgAPal);
 	VDP_setPalette(bgbPid, bgBPal);
@@ -352,7 +439,8 @@ int main(bool hardReset) {
 	Tiles tileEngine;
 	u16 kirbyTid = tileEngine.add(kirbyTiles, kirbyTilesLen);
 //	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
-	u16 mushroomTid = tileEngine.add(marioTiles, 8*(4*4));
+	u16 mushroomTid = tileEngine.add(marioTiles, 8 * (4 * 4));
+//	u16 mushroomTid = tileEngine.add(charTiles, 8*(4*4));
 
 	// SPRITES
 	Sprites spriteEngine(128);
@@ -386,7 +474,8 @@ int main(bool hardReset) {
 	//VDP_drawText("Hello world !", 12, 12);
 
 	Player player0(20, 40, 8, 8);
-	Player player1(20, 40, 32, 32);
+//	Player player1(20, 40, 32, 32);
+	PlayerIso player1;
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
@@ -394,13 +483,16 @@ int main(bool hardReset) {
 		// nothing to do here
 		// ...
 
-		player0.update(&map, JOY_1);
+		player0.update(&map, JOY_2);
 		spriteEngine.setX(0, player0.x());
 		spriteEngine.setY(0, player0.y());
 		spriteEngine.setHFlip(0, player0.hflip());
 
-		player1.update(&map, JOY_2);
-		tileEngine.update(mushroomTid, marioTiles+8*(4*4)*(player1.animationID()%8), 8*(4*4));
+		player1.update(&map, JOY_1);
+		u16 aid =  8 * (4 * 4) * (player1.animationID() % 2);
+		tileEngine.update(mushroomTid,
+				&marioTiles[aid],
+				8 * (4 * 4));
 		spriteEngine.setX(1, player1.x());
 		spriteEngine.setY(1, player1.y());
 		spriteEngine.setHFlip(1, player1.hflip());

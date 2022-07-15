@@ -6,3 +6,4 @@
 *.bin
 *.d
 *.out
+.settings/org.eclipse.cdt.core.prefs
