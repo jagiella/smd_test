@@ -160,7 +160,7 @@ out/rom.bin: out/rom.out
 
 out/rom.out: out/sega.o out/cmd_ $(LIBMD)
 	#$(CC) -B$(BIN) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) $(LIB)/libgcc.a -o out/rom.out -Wl,--gc-sections
-	#$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) /usr/lib/gcc-cross/m68k-linux-gnu/11/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
+	#$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) /usr/lib/gcc-cross/m68k-linux-gnu/12/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
 	$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) $(LIB)/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
 	$(RM) out/cmd_
 
