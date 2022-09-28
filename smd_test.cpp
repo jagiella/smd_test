@@ -167,14 +167,15 @@ class PlayerIso {
 	s16 m_x, m_y, m_z;
 	u16 m_w, m_h;
 	s16 m_speed[3];
-	u8 m_aid, m_hflip, m_vflip;
+	u16 m_aid, m_rt;
+	u16 m_hflip, m_vflip;
 public:
 	PlayerIso() :
 			m_x(0), m_y(0), m_z(0), m_w(32), m_h(32) {
-		m_speed[0] = 0;
-		m_speed[1] = 0;
-		m_speed[2] = 0;
+		for (int i = 0; i < 3; i++)
+			m_speed[i] = 0;
 		m_aid = 0;
+		m_rt = 0;
 		m_hflip = 0;
 		m_vflip = 0;
 	}
@@ -188,23 +189,32 @@ public:
 		if (joy_state & BUTTON_LEFT) {
 			m_speed[0] -= SUBPIXELS * 2;
 			m_hflip = 1;
-			m_aid = (m_aid + 1) % 4;
+			m_rt++;
 		}
 		if (joy_state & BUTTON_RIGHT) {
 			m_speed[0] += SUBPIXELS * 2;
 			m_hflip = 0;
-//			m_aid++;
+			m_rt++;
 		}
 		if (joy_state & BUTTON_UP) {
 			m_speed[1] -= SUBPIXELS * 2;
 			m_vflip = 1;
-//			m_aid++;
+			m_rt++;
 		}
 		if (joy_state & BUTTON_DOWN) {
 			m_speed[1] += SUBPIXELS * 2;
 			m_vflip = 0;
-//			m_aid++;
+			m_rt++;
 		}
+
+		if(m_rt > 2*8)
+			m_rt = 0;
+//		if (m_rt >= 30) {
+//			m_rt = 0;
+//			m_aid = m_aid + 1;
+//			if (m_aid > 4)
+//				m_aid = 0;
+//		}
 
 		if (joy_state & BUTTON_A) {
 			m_speed[2] = 10;
@@ -234,7 +244,7 @@ public:
 		return m_vflip;
 	}
 	u16 animationID() {
-		return (u16)m_aid;
+		return m_rt>>2;
 	}
 };
 
@@ -479,6 +489,7 @@ int main(bool hardReset) {
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
+	u16 aid_old = 0;
 	while (true) {
 		// nothing to do here
 		// ...
@@ -489,10 +500,15 @@ int main(bool hardReset) {
 		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_1);
-		u16 aid =  8 * (4 * 4) * (player1.animationID() % 2);
-		tileEngine.update(mushroomTid,
-				&marioTiles[aid],
-				8 * (4 * 4));
+//		u16 &aid = player1.animationID();
+		if (aid_old != player1.animationID()) {
+//			aid = 1;
+			aid_old = player1.animationID();
+//			tileEngine.update(mushroomTid, marioTiles + (aid_old * 8 * 4 * 4),
+//					8 * (4 * 4));
+			tileEngine.update(mushroomTid, marioTiles + (2 * 8 * 4 * 4),
+					8 * (4 * 4));
+		}
 		spriteEngine.setX(1, player1.x());
 		spriteEngine.setY(1, player1.y());
 		spriteEngine.setHFlip(1, player1.hflip());

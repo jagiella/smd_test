@@ -8,8 +8,8 @@
 #    GDK := $(patsubst %/,%,$(MAKEFILE_DIR))
 #endif
 
-#BIN := $(GDK)/bin
 GDK := /opt/gendev/sgdk
+#BIN := /opt/gendev/bin/m68k-elf-
 BIN := /usr/bin/m68k-linux-gnu-
 LIB := $(GDK)/lib
 
@@ -92,7 +92,7 @@ FLAGSZ80 := -i$(SRC) -i$(INCLUDE) -i$(RES) -i$(LIBSRC) -i$(LIBINCLUDE)
 
 
 #release: FLAGS= $(DEFAULT_FLAGS) -Os -fomit-frame-pointer -fuse-linker-plugin -flto
-release: FLAGS= $(DEFAULT_FLAGS) -O5 -fuse-linker-plugin -fno-web -fno-gcse -fno-unit-at-a-time -fomit-frame-pointer -flto
+release: FLAGS= $(DEFAULT_FLAGS) -O3 -fuse-linker-plugin -fno-web -fno-gcse -fno-unit-at-a-time -fomit-frame-pointer -flto
 release: LIBMD= $(LIB)/libmd.a
 release: pre-build out/rom.bin #out/symbol.txt
 #release: $(info $$var is [${SRC_C}])
@@ -160,7 +160,8 @@ out/rom.bin: out/rom.out
 
 out/rom.out: out/sega.o out/cmd_ $(LIBMD)
 	#$(CC) -B$(BIN) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) $(LIB)/libgcc.a -o out/rom.out -Wl,--gc-sections
-	$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) /usr/lib/gcc-cross/m68k-linux-gnu/11/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
+	#$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) /usr/lib/gcc-cross/m68k-linux-gnu/11/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
+	$(CC) -n -T $(GDK)/md.ld -nostdlib out/sega.o @out/cmd_ $(LIBMD) $(LIB)/libgcc.a -o out/rom.out -Wl,--gc-sections,--build-id=none
 	$(RM) out/cmd_
 
 out/cmd_: $(OBJS)
