@@ -13,6 +13,8 @@ extern "C" {
 #include "foreground.h"
 #include "height.h"
 
+#include "fix16.hpp"
+
 //#include <iterator> // For std::forward_iterator_tag
 //#include <cstddef>  // For std::ptrdiff_t
 
@@ -256,11 +258,12 @@ private:
 	s16 m_speed[2];
 	u16 m_hflip, m_vflip;
 	u8 m_aid, m_rt;
+	FixPoint fp_x, fp_y;
 //	float f_speed[2];
 //	float f_x, f_y;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x * SUBPIXELS), m_y(y * SUBPIXELS), m_w(w), m_h(h) {
+			m_x(x * SUBPIXELS), m_y(y * SUBPIXELS), m_w(w), m_h(h), fp_x(x), fp_y(y) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 		m_hflip = 0;
@@ -273,10 +276,12 @@ public:
 //		f_y = 0;
 	}
 	s16 x() {
-		return (s16) m_x / SUBPIXELS;
+		//return (s16) m_x / SUBPIXELS;
+		return (s16) fp_x;
 	}
 	s16 y() {
-		return (s16) m_y / SUBPIXELS;
+		//return (s16) m_y / SUBPIXELS;
+		return (s16) fp_y;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -347,6 +352,8 @@ public:
 //		m_x += m_speed[0];
 
 // raster line
+		fp_x.v += m_speed[0]*4;
+		fp_y.v -= m_speed[1]*4;
 		s16 x2 = m_x + m_speed[0];
 		s16 y2 = m_y - m_speed[1];
 		LineIterator it( { m_x, m_y }, { x2, y2 });
