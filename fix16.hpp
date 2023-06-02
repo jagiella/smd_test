@@ -49,6 +49,7 @@ struct FixPoint {
 		v = fp.v;
 	}
 
+	// ASSIGNMENT OPERATORS
 	FixPoint& operator=(const FixPoint &fp1) {
 		this->v = fp1.v;
 		return *this;
@@ -80,6 +81,24 @@ struct FixPoint {
 		return *this;
 	}
 
+
+	// IN/DECREMENT OPERATORS
+	FixPoint& operator++(int) {
+		v++;
+		return *this;
+	}
+	FixPoint& operator--(int) {
+		v--;
+		return *this;
+	}
+
+
+	// ARITHMETIC OPERATORS
+	FixPoint operator-() const {
+		FixPoint fp2 = *this;
+		fp2.v = -fp2.v;
+		return fp2;
+	}
 	FixPoint operator+(const FixPoint &fp1) const {
 		FixPoint fp2 = *this;
 		fp2 += fp1;
@@ -100,6 +119,32 @@ struct FixPoint {
 		fp2 /= fp1;
 		return fp2;
 	}
+	FixPoint operator/(const s16 &b) const {
+		FixPoint fp2 = *this;
+		fp2.v /= b;
+		return fp2;
+	}
+
+
+	// COMPARISON
+	bool operator<(const FixPoint& b) const {
+		return this->v < b.v;
+	}
+	bool operator>(const FixPoint& b) const {
+		return this->v > b.v;
+	}
+	bool operator==(const FixPoint& b) const {
+		return this->v == b.v;
+	}
+	bool operator!=(const FixPoint& b) const {
+		return this->v != b.v;
+	}
+
+	/*FixPoint operator/(const FixPoint &fp1) const {
+		FixPoint fp2 = *this;
+		fp2 /= fp1;
+		return fp2;
+	}*/
 
 	operator float() const {
 		return ((float) v) / ((float) (1 << FIX16_FRAC_BITS));

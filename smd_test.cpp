@@ -209,7 +209,7 @@ public:
 			m_rt++;
 		}
 
-		if(m_rt > 2*8)
+		if (m_rt > 2 * 8)
 			m_rt = 0;
 //		if (m_rt >= 30) {
 //			m_rt = 0;
@@ -237,7 +237,7 @@ public:
 		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16) (m_y - m_z) / SUBPIXELS;
+		return (s16)(m_y - m_z) / SUBPIXELS;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -246,24 +246,24 @@ public:
 		return m_vflip;
 	}
 	u16 animationID() {
-		return m_rt>>2;
+		return m_rt >> 2;
 	}
 };
 
 class Player {
 private:
 //	const s16 subpixels = 8;
-	s16 m_x, m_y;
+	FixPoint m_x, m_y;
 	u16 m_w, m_h;
-	s16 m_speed[2];
+	FixPoint m_speed[2];
 	u16 m_hflip, m_vflip;
 	u8 m_aid, m_rt;
-	FixPoint fp_x, fp_y;
+
 //	float f_speed[2];
 //	float f_x, f_y;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x * SUBPIXELS), m_y(y * SUBPIXELS), m_w(w), m_h(h), fp_x(x), fp_y(y) {
+			m_x(x), m_y(y), m_w(w), m_h(h) {
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 		m_hflip = 0;
@@ -277,11 +277,11 @@ public:
 	}
 	s16 x() {
 		//return (s16) m_x / SUBPIXELS;
-		return (s16) fp_x;
+		return (s16) m_x;
 	}
 	s16 y() {
 		//return (s16) m_y / SUBPIXELS;
-		return (s16) fp_y;
+		return (s16) m_y;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -302,9 +302,9 @@ public:
 		bool jump = (on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
 		bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
 
-		s16 jumpSpeed = SUBPIXELS * 7;
-		s16 maxGravity = SUBPIXELS / 2;
-		s16 maxFallSpeed = SUBPIXELS * 4;
+		FixPoint jumpSpeed = (s16)(1 * 7);
+		FixPoint maxGravity = 0.5f;
+		FixPoint maxFallSpeed = (s16)(1 * 4);
 
 		if (jump)
 			m_speed[1] = jumpSpeed;
@@ -312,7 +312,7 @@ public:
 		if (!jumpHeld and !on_ground) {
 			m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
 		} else if (jumpHeld and !on_ground) {
-			m_speed[1] = max(m_speed[1] - maxGravity / 2, -maxFallSpeed);
+			m_speed[1] = max(m_speed[1] - maxGravity / (s16)2, -maxFallSpeed);
 		}
 
 		if (on_ground and !jump) {
@@ -329,14 +329,14 @@ public:
 		//bool was_running = (m_speed[0]!=0);
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
-			m_speed[0] -= SUBPIXELS * 2;
+			m_speed[0] -= (s16)1;
 			m_hflip = 1;
 		}
 		if (joy_state & BUTTON_RIGHT) {
-			m_speed[0] += SUBPIXELS * 2;
+			m_speed[0] += (s16)1;
 			m_hflip = 0;
 		}
-		bool is_running = (m_speed[0] != 0) and on_ground;
+		bool is_running = ((s16) m_speed[0] != 0) and on_ground;
 		if (is_running) {
 			m_rt++;
 			if (m_rt == 4) {
@@ -352,21 +352,37 @@ public:
 //		m_x += m_speed[0];
 
 // raster line
-		fp_x.v += m_speed[0]*4;
-		fp_y.v -= m_speed[1]*4;
+		/*FixPoint sign = (m_speed[0] < FixPoint(0.f) ? -1.f : +1.f);
+		FixPoint dst = m_speed[0]+m_x;
+		for(; (s16)m_x != (s16)dst; m_x += sign)
+			if( colliding(collision)){
+				m_x -= sign;
+				break;
+			}*/
+
+			//m_x += sign;
+		m_x += m_speed[0];
+		//if(colliding(collision))
+		//	m_x -= m_speed[0];
+
+		m_y -= m_speed[1];
+		//if(colliding(collision))
+		//	m_y += m_speed[1];
+		return;
+
 		s16 x2 = m_x + m_speed[0];
 		s16 y2 = m_y - m_speed[1];
 		LineIterator it( { m_x, m_y }, { x2, y2 });
 		for (auto p : it) {
 			for (u8 i = 0; i < 7; i++)
 				it++;
-			if (p.x != m_x) {
+			if (p.x != (s16) m_x) {
 				s16 old_x = m_x;
 				m_x = p.x;
 				if (colliding(collision))
 					m_x = old_x;
 			}
-			if (p.y != m_y) {
+			if (p.y != (s16) m_y) {
 				s16 old_y = m_y;
 				m_y = p.y;
 				if (colliding(collision))
