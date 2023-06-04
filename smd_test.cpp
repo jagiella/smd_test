@@ -237,7 +237,7 @@ public:
 		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16)(m_y - m_z) / SUBPIXELS;
+		return (s16) (m_y - m_z) / SUBPIXELS;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -295,47 +295,51 @@ public:
 
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
-		m_y++;
-		char on_ground = onGround(collision);
-		m_y--;
 
-		bool jump = (on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
-		bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
+		// on
+		bool on_ground = onGround(collision);
 
-		FixPoint jumpSpeed = (s16)(1 * 7);
+		//bool jump = (on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
+		//bool jumpHeld = (!on_ground) and (joy_state & (BUTTON_A | BUTTON_UP));
+		// player action
+		bool jump = (joy_state & (BUTTON_A | BUTTON_UP));
+
+		FixPoint walkSpeed = 2.f;
+		FixPoint jumpSpeed = 7.f;
 		FixPoint maxGravity = 0.5f;
-		FixPoint maxFallSpeed = (s16)(1 * 4);
+		FixPoint maxFallSpeed = 4.f;
 
-		if (jump)
-			m_speed[1] = jumpSpeed;
+		// vertical speed
+		if (on_ground) {
+			// on ground
+			if (jump)
+				m_speed[1] = jumpSpeed;
+			else
+				m_speed[1] = 0;
 
-		if (!jumpHeld and !on_ground) {
-			m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
-		} else if (jumpHeld and !on_ground) {
-			m_speed[1] = max(m_speed[1] - maxGravity / (s16)2, -maxFallSpeed);
-		}
-
-		if (on_ground and !jump) {
-			// stop
-			m_speed[1] = 0;
 		} else {
-			// move
-//			m_y -= m_speed[1];
+			// in air
+			if (jump) {
+				m_speed[1] = max(m_speed[1] - maxGravity / (s16 )2,
+						-maxFallSpeed);
+			} else {
+				m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
+			}
+
 		}
-//		if (joy_state & BUTTON_UP)
-//			m_y--;
-//		if (joy_state & BUTTON_DOWN)
-//			m_y++;
-		//bool was_running = (m_speed[0]!=0);
+
+		// horizontal speed
 		m_speed[0] = 0;
 		if (joy_state & BUTTON_LEFT) {
-			m_speed[0] -= (s16)1;
+			m_speed[0] -= walkSpeed;
 			m_hflip = 1;
 		}
 		if (joy_state & BUTTON_RIGHT) {
-			m_speed[0] += (s16)1;
+			m_speed[0] += walkSpeed;
 			m_hflip = 0;
 		}
+
+		// animation
 		bool is_running = ((s16) m_speed[0] != 0) and on_ground;
 		if (is_running) {
 			m_rt++;
@@ -353,42 +357,71 @@ public:
 
 // raster line
 		/*FixPoint sign = (m_speed[0] < FixPoint(0.f) ? -1.f : +1.f);
-		FixPoint dst = m_speed[0]+m_x;
-		for(; (s16)m_x != (s16)dst; m_x += sign)
-			if( colliding(collision)){
-				m_x -= sign;
-				break;
-			}*/
+		 FixPoint dst = m_speed[0]+m_x;
+		 for(; (s16)m_x != (s16)dst; m_x += sign)
+		 if( colliding(collision)){
+		 m_x -= sign;
+		 break;
+		 }*/
+		FixPoint zero = 0.f;
+		if(m_speed[0] == zero && m_speed[1]==zero)
+			return;
 
-			//m_x += sign;
-		m_x += m_speed[0];
-		//if(colliding(collision))
-		//	m_x -= m_speed[0];
+		//m_x += sign;
+		FixPoint dx, dy;
+		s16 n;
+		if(m_speed[0].fabs() > m_speed[1].fabs()){
+			n = m_speed[0].fabs();
+			dx = m_speed[0] / m_speed[0].fabs();
+			dy = m_speed[1] / m_speed[0].fabs();
+		} else {
+			n = m_speed[1].fabs();
+			dx = m_speed[0] / m_speed[1].fabs();
+			dy = m_speed[1] / m_speed[1].fabs();
+		}
 
-		m_y -= m_speed[1];
-		//if(colliding(collision))
-		//	m_y += m_speed[1];
-		return;
-
-		s16 x2 = m_x + m_speed[0];
-		s16 y2 = m_y - m_speed[1];
-		LineIterator it( { m_x, m_y }, { x2, y2 });
-		for (auto p : it) {
-			for (u8 i = 0; i < 7; i++)
-				it++;
-			if (p.x != (s16) m_x) {
-				s16 old_x = m_x;
-				m_x = p.x;
-				if (colliding(collision))
-					m_x = old_x;
+		for(s16 i=0; i<n; i++){
+			m_x += dx;
+			if(colliding(collision)){
+				m_x -= dx;
+				m_speed[0] = 0;
 			}
-			if (p.y != (s16) m_y) {
-				s16 old_y = m_y;
-				m_y = p.y;
-				if (colliding(collision))
-					m_y = old_y;
+			m_y -= dy;
+			if(colliding(collision)){
+				m_y += dy;
+				m_speed[1] = 0;
 			}
 		}
+		/*
+		m_x += m_speed[0];
+		if(colliding(collision))
+			m_x -= m_speed[0];
+
+		m_y -= m_speed[1];
+		if(colliding(collision))
+			m_y += m_speed[1];
+		*/
+		return;
+
+		/*s16 x2 = m_x + m_speed[0];
+		 s16 y2 = m_y - m_speed[1];
+		 LineIterator it( { m_x, m_y }, { x2, y2 });
+		 for (auto p : it) {
+		 for (u8 i = 0; i < 7; i++)
+		 it++;
+		 if (p.x != (s16) m_x) {
+		 s16 old_x = m_x;
+		 m_x = p.x;
+		 if (colliding(collision))
+		 m_x = old_x;
+		 }
+		 if (p.y != (s16) m_y) {
+		 s16 old_y = m_y;
+		 m_y = p.y;
+		 if (colliding(collision))
+		 m_y = old_y;
+		 }
+		 }*/
 	}
 
 	u16 pos2tid(s16 pos) {
@@ -431,7 +464,7 @@ public:
 
 	bool onGround(TileMap *collision) {
 		u16 empty = collision->tilemap[0];
-		u16 t_y = pos2tid(y() + m_h);
+		u16 t_y = pos2tid(y() + 1 + m_h);
 		for (u16 t_x = pos2tid(x()); t_x <= pos2tid(x() + m_w); t_x++) {
 			u16 tid = t_x + t_y * collision->w;
 

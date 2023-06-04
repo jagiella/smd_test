@@ -31,7 +31,17 @@ s32 muls(s16 op1, s16 op2) {
 */
 
 extern s32 muls(s16 op1, s16 op2);
-extern s16 divs(s32 op1, s16 op2);
+//extern s16 divs(s32 op1, s16 op2);
+
+inline s16 divs(s32 op1, s16 op2)
+{
+    s32 result = op1;
+    asm ("divs.w %1, %0"
+         : "+d" (result)
+         : "d" (op2)
+         : "cc");
+    return result;
+}
 
 struct FixPoint {
 	s16 v;
@@ -49,12 +59,20 @@ struct FixPoint {
 		v = fp.v;
 	}
 
+	FixPoint fabs(){
+		FixPoint out = *this;
+		if(v < 0)
+			return -out;
+		else
+			return out;
+	}
+
 	// ASSIGNMENT OPERATORS
 	FixPoint& operator=(const FixPoint &fp1) {
 		this->v = fp1.v;
 		return *this;
 	}
-	FixPoint& operator=(const s16 &val) {
+	FixPoint& operator=(const signed short &val) {
 		this->v = val << FIX16_FRAC_BITS;
 		return *this;
 	}
