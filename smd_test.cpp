@@ -209,7 +209,7 @@ public:
 			m_rt++;
 		}
 
-		if (m_rt > 2 * 8)
+		if (m_rt > 2 * 4)
 			m_rt = 0;
 //		if (m_rt >= 30) {
 //			m_rt = 0;
@@ -246,7 +246,7 @@ public:
 		return m_vflip;
 	}
 	u16 animationID() {
-		return m_rt >> 2;
+		return (m_rt >> 2) % 8;
 	}
 };
 
@@ -364,13 +364,13 @@ public:
 		 break;
 		 }*/
 		FixPoint zero = 0.f;
-		if(m_speed[0] == zero && m_speed[1]==zero)
+		if (m_speed[0] == zero && m_speed[1] == zero)
 			return;
 
 		//m_x += sign;
 		FixPoint dx, dy;
 		s16 n;
-		if(m_speed[0].fabs() > m_speed[1].fabs()){
+		if (m_speed[0].fabs() > m_speed[1].fabs()) {
 			n = m_speed[0].fabs();
 			dx = m_speed[0] / m_speed[0].fabs();
 			dy = m_speed[1] / m_speed[0].fabs();
@@ -380,27 +380,27 @@ public:
 			dy = m_speed[1] / m_speed[1].fabs();
 		}
 
-		for(s16 i=0; i<n; i++){
+		for (s16 i = 0; i < n; i++) {
 			m_x += dx;
-			if(colliding(collision)){
+			if (colliding(collision)) {
 				m_x -= dx;
 				m_speed[0] = 0;
 			}
 			m_y -= dy;
-			if(colliding(collision)){
+			if (colliding(collision)) {
 				m_y += dy;
 				m_speed[1] = 0;
 			}
 		}
 		/*
-		m_x += m_speed[0];
-		if(colliding(collision))
-			m_x -= m_speed[0];
+		 m_x += m_speed[0];
+		 if(colliding(collision))
+		 m_x -= m_speed[0];
 
-		m_y -= m_speed[1];
-		if(colliding(collision))
-			m_y += m_speed[1];
-		*/
+		 m_y -= m_speed[1];
+		 if(colliding(collision))
+		 m_y += m_speed[1];
+		 */
 		return;
 
 		/*s16 x2 = m_x + m_speed[0];
@@ -556,14 +556,11 @@ int main(bool hardReset) {
 		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_1);
-//		u16 &aid = player1.animationID();
-		if (aid_old != player1.animationID()) {
-//			aid = 1;
-			aid_old = player1.animationID();
-//			tileEngine.update(mushroomTid, marioTiles + (aid_old * 8 * 4 * 4),
-//					8 * (4 * 4));
-			tileEngine.update(mushroomTid, marioTiles + (2 * 8 * 4 * 4),
-					8 * (4 * 4));
+		u16 aid = player1.animationID();
+		if (aid_old != aid) {
+			aid_old = aid;
+			const u32 *tiles = &marioTiles[aid_old * 8 * (4 * 4)];
+			tileEngine.update(mushroomTid, tiles, 8 * (4 * 4));
 		}
 		spriteEngine.setX(1, player1.x());
 		spriteEngine.setY(1, player1.y());
