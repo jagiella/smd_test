@@ -1,7 +1,7 @@
 extern "C" {
 #include "genesis.h"
 }
-;
+
 #include "kirby.h"
 #include "mario.h"
 #include "mushroom.h"
@@ -29,6 +29,8 @@ public:
 
 	}
 	void add(u16 x, u16 y, u8 size, u16 attr) {
+		if (n == maxlen)
+			return;
 		if (n > 0)
 			sprites[n - 1].link = n;
 		sprites[n].link = 0;
@@ -167,13 +169,14 @@ private:
 
 class PlayerIso {
 	s16 m_x, m_y, m_z;
-	u16 m_w, m_h;
+	//u16 m_w, m_h;
 	s16 m_speed[3];
 	u16 m_aid, m_rt;
 	u16 m_hflip, m_vflip;
 public:
 	PlayerIso() :
-			m_x(0), m_y(0), m_z(0), m_w(32), m_h(32) {
+			m_x(0), m_y(0), m_z(0) //, m_w(32), m_h(32)
+	{
 		for (int i = 0; i < 3; i++)
 			m_speed[i] = 0;
 		m_aid = 0;
@@ -237,7 +240,7 @@ public:
 		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16) (m_y - m_z) / SUBPIXELS;
+		return (s16)(m_y - m_z) / SUBPIXELS;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -320,7 +323,7 @@ public:
 		} else {
 			// in air
 			if (jump) {
-				m_speed[1] = max(m_speed[1] - maxGravity / (s16 )2,
+				m_speed[1] = max(m_speed[1] - maxGravity / (s16) 2,
 						-maxFallSpeed);
 			} else {
 				m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
@@ -486,7 +489,7 @@ public:
 //	}
 };
 
-int main(bool hardReset) {
+int main(int hardReset) {
 	VDP_setScreenWidth320();
 	SYS_disableInts();
 	// PALETTES
