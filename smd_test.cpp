@@ -2,6 +2,9 @@ extern "C" {
 #include "genesis.h"
 }
 
+#include <initializer_list>
+#include <array>
+
 #include "kirby.h"
 #include "mario.h"
 #include "mushroom.h"
@@ -22,15 +25,20 @@ class Sprites {
 	int maxlen;
 	int n;
 	VDPSprite sprites[2];
+	static Sprites s_instance;
 public:
-	Sprites(int maxlen) :
+	Sprites(int maxlen = 80) :
 			maxlen(maxlen) {
 		n = 0;
 
 	}
-	void add(u16 x, u16 y, u8 size, u16 attr) {
+	static Sprites& instance() {
+		return s_instance;
+	}
+	u16 add(u16 x, u16 y, u8 size, u16 attr) {
+		u16 sid = n;
 		if (n == maxlen)
-			return;
+			return sid;
 		if (n > 0)
 			sprites[n - 1].link = n;
 		sprites[n].link = 0;
@@ -39,6 +47,7 @@ public:
 		sprites[n].x = x + 0x80;
 		sprites[n].y = y + 0x80;
 		n++;
+		return sid;
 	}
 
 	void setX(int index, s16 x) {
@@ -57,6 +66,7 @@ public:
 				n * sizeof(VDPSprite) / 2, 2);
 	}
 };
+Sprites Sprites::s_instance;
 
 class Tiles {
 	u16 n;
@@ -76,6 +86,42 @@ public:
 	}
 };
 
+//Tiles tileEngine;
+//Sprites spriteEngine;
+/*
+ class SpriteSequence {
+ const u16 m_spriteWidth;
+ const u16 m_spriteHeight;
+ const u16 m_spriteCount;
+ const u32 *m_tiles;
+ u16 m_tid;
+ u8 m_frameCount;
+ u8 m_animationFrames;
+ public:
+ SpriteSequence(const u16 spriteWidth, const u16 spriteHeight,
+ const u16 spriteCount, const u32 *tiles, u8 frames) :
+ m_spriteWidth(spriteWidth), m_spriteHeight(spriteHeight), m_spriteCount(
+ spriteCount), m_tiles(tiles), m_frameCount(0), m_animationFrames(
+ frames) {
+ //m_tid = tileEngine.add(m_tiles, 8 * (spriteWidth * spriteHeight));
+
+ }
+ void operator++() {
+ m_frameCount = (m_frameCount + 1) % (m_animationFrames * m_spriteCount);
+ if (m_frameCount % m_animationFrames == 0) {
+ // load tiles
+ auto spriteIndex = m_frameCount / m_animationFrames;
+ auto spriteSize = 8 * (m_spriteWidth * m_spriteHeight);
+ //tileEngine.update(m_tid, m_tiles + spriteIndex, spriteSize);
+
+ //spriteEngine.setX(1, player1.x());
+ //spriteEngine.setY(1, player1.y());
+ //spriteEngine.setHFlip(1, player1.hflip());
+ //spriteEngine.update();
+ }
+ }
+ };
+ */
 #define SUBPIXELS 4
 #define ABS(x) ((x)<0 ? -(x) : (x) )
 //#define sign(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
@@ -170,19 +216,37 @@ private:
 class PlayerIso {
 	s16 m_x, m_y, m_z;
 	//u16 m_w, m_h;
-	s16 m_speed[3];
+	std::array<s16, 3> m_speed;
 	u16 m_aid, m_rt;
 	u16 m_hflip, m_vflip;
+	//SpriteSequence sprite;
+	Sprites *m_sprites;
+	Tiles *m_tiles;
+	u16 m_tid;
+	u16 m_sid;
 public:
-	PlayerIso() :
-			m_x(0), m_y(0), m_z(0) //, m_w(32), m_h(32)
+	PlayerIso(Sprites *sprites, Tiles *tiles) :
+			m_x(0), m_y(0), m_z(0), m_speed( { 0, 0, 0 }), m_sprites(sprites), m_tiles(
+					tiles) //, sprite(4, 4, 8, marioTiles, 4)
 	{
-		for (int i = 0; i < 3; i++)
-			m_speed[i] = 0;
+		/*#pragma unroll
+		 for (const int dim : { 0, 1, 2 }) {
+		 m_speed[dim] = 0;
+		 }*/
 		m_aid = 0;
 		m_rt = 0;
 		m_hflip = 0;
 		m_vflip = 0;
+
+		// add palette
+
+		// add tiles
+		m_tid = m_tiles->add(marioTiles, 8 * (4 * 4));
+
+		// add sprite
+		m_sid = m_sprites->add(140, 72, SPRITE_SIZE(4, 4),
+				TILE_ATTR_FULL(PAL1, 1, 0, 0, m_tid));
+
 	}
 
 	void update(TileMap *collision, u16 joypad) {
@@ -235,12 +299,21 @@ public:
 		m_y += m_speed[1];
 		m_z += m_speed[2];
 
+		// update sprite
+		m_sprites->setX(m_sid, x());
+		m_sprites->setY(m_sid, y());
+		m_sprites->setHFlip(m_sid, hflip());
+
+		// update tiles
+		const u32 *tiles = &marioTiles[animationID() * 8 * (4 * 4)];
+		m_tiles->update(m_tid, tiles, 8 * (4 * 4));
+
 	}
 	s16 x() {
 		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16)(m_y - m_z) / SUBPIXELS;
+		return (s16) (m_y - m_z) / SUBPIXELS;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -323,10 +396,10 @@ public:
 		} else {
 			// in air
 			if (jump) {
-				m_speed[1] = max(m_speed[1] - maxGravity / (s16) 2,
+				m_speed[1] = std::max(m_speed[1] - maxGravity / (s16) 2,
 						-maxFallSpeed);
 			} else {
-				m_speed[1] = max(m_speed[1] - maxGravity, -maxFallSpeed);
+				m_speed[1] = std::max(m_speed[1] - maxGravity, -maxFallSpeed);
 			}
 
 		}
@@ -508,15 +581,16 @@ int main(int hardReset) {
 	Tiles tileEngine;
 	u16 kirbyTid = tileEngine.add(kirbyTiles, kirbyTilesLen);
 //	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
-	u16 mushroomTid = tileEngine.add(marioTiles, 8 * (4 * 4));
+//	u16 mushroomTid = tileEngine.add(marioTiles, 8 * (4 * 4));
 //	u16 mushroomTid = tileEngine.add(charTiles, 8*(4*4));
 
 	// SPRITES
-	Sprites spriteEngine(128);
+	Sprites spriteEngine;
+	//Sprites& spriteEngine = Sprites::instance();
 	spriteEngine.add(10, 10, SPRITE_SIZE(1, 1),
 			TILE_ATTR_FULL(kirbyPid, 1, 0, 0, kirbyTid));
-	spriteEngine.add(140, 72, SPRITE_SIZE(4, 4),
-			TILE_ATTR_FULL(mushroomPid, 1, 0, 0, mushroomTid));
+//	spriteEngine.add(140, 72, SPRITE_SIZE(4, 4),
+//			TILE_ATTR_FULL(mushroomPid, 1, 0, 0, mushroomTid));
 	spriteEngine.update();
 
 	// BACKGROUND
@@ -531,11 +605,11 @@ int main(int hardReset) {
 	map.compression = COMPRESSION_NONE;
 	map.h = 32;
 	map.w = 64;
-	map.tilemap = bgBTileMap;
+	map.tilemap = static_cast<u16*>(bgBTileMap);
 	VDP_setTileMapEx(BG_B, &map,
 			TILE_ATTR_FULL(bgbPid, FALSE, FALSE, FALSE, bgbTid), 0, 0, 0, 0, 64,
 			32, DMA);
-	map.tilemap = bgATileMap;
+	map.tilemap = static_cast<u16*>(bgATileMap);
 	VDP_setTileMapEx(BG_A, &map,
 			TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0, 0, 0, 64,
 			32, DMA);
@@ -544,11 +618,12 @@ int main(int hardReset) {
 
 	Player player0(20, 40, 8, 8);
 //	Player player1(20, 40, 32, 32);
-	PlayerIso player1;
+	PlayerIso player1(&spriteEngine, &tileEngine);
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
-	u16 aid_old = 0;
+	//u16 aid_old = 0;
+#pragma GCC unroll 1
 	while (true) {
 		// nothing to do here
 		// ...
@@ -559,15 +634,7 @@ int main(int hardReset) {
 		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_1);
-		u16 aid = player1.animationID();
-		if (aid_old != aid) {
-			aid_old = aid;
-			const u32 *tiles = &marioTiles[aid_old * 8 * (4 * 4)];
-			tileEngine.update(mushroomTid, tiles, 8 * (4 * 4));
-		}
-		spriteEngine.setX(1, player1.x());
-		spriteEngine.setY(1, player1.y());
-		spriteEngine.setHFlip(1, player1.hflip());
+
 		spriteEngine.update();
 
 		// always call this method at the end of the frame

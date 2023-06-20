@@ -6,9 +6,9 @@ set(CMAKE_C_COMPILER   m68k-linux-gnu-gcc-13)
 set(CMAKE_CXX_COMPILER m68k-linux-gnu-g++-13)
 set(CMAKE_ASM_COMPILER m68k-linux-gnu-gcc-13)
 set(CMAKE_LINKER m68k-linux-gnu-gcc-13)
-set(CMAKE_CXX_CLANG_TIDY clang-tidy;
-	#-warnings-as-errors=*;
-	-checks=*,-*-magic-numbers,-clang-diagnostic-ignored-optimization-argument,-llvmlibc*)
+#set(CMAKE_CXX_CLANG_TIDY clang-tidy;
+#	-warnings-as-errors=*;
+#	-checks=-*,readability*,cppcoreguidelines*,-*-magic-numbers,-clang-diagnostic-ignored-optimization-argument,-llvmlibc*)
 
 # where is the target environment located
 set(CMAKE_FIND_ROOT_PATH  /usr/bin)
@@ -37,7 +37,7 @@ project(Header)
 add_executable(rom_head.bin
 	/opt/gendev/sgdk/src/boot/rom_head.c
 )	
-target_include_directories(rom_head.bin
+target_include_directories(rom_head.bin SYSTEM
 	PUBLIC 
 		/opt/gendev/sgdk/inc
 		/opt/gendev/sgdk/res
