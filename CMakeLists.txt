@@ -6,5 +6,4 @@ project(smd_test
 	C CXX ASM)
 
 add_rom(smd_test
-	fixpoint.c
 	smd_test.cpp)
