@@ -9,6 +9,9 @@ extern "C" {
 #include "char.h"
 #include "bgA.h"
 #include "bgB.h"
+#include "res/tilemaps/dungeonA.h"
+#include "res/tilemaps/dungeonB.h"
+
 #include "background.h"
 #include "foreground.h"
 #include "height.h"
@@ -498,8 +501,8 @@ int main(bool hardReset) {
 	VDP_setPalette(mushroomPid, marioPal);
 //	VDP_setPalette(mushroomPid, charPal);
 //	VDP_setPalette(mushroomPid, quietschiPal);
-	VDP_setPalette(bgaPid, bgAPal);
-	VDP_setPalette(bgbPid, bgBPal);
+	VDP_setPalette(bgaPid, dungeonAPal);
+	VDP_setPalette(bgbPid, dungeonBPal);
 //
 //	// TILES
 	Tiles tileEngine;
@@ -521,21 +524,21 @@ int main(bool hardReset) {
 	 bg_a.compression = COMPRESSION_NONE;
 	 bg_a.numTile = bgATilesLen / 8;
 	 bg_a.tiles = bgATiles;*/
-	u16 bgaTid = tileEngine.add(bgATiles, bgATilesLen);
-	u16 bgbTid = tileEngine.add(bgBTiles, bgBTilesLen);
+	u16 bgaTid = tileEngine.add(dungeonATiles, dungeonATilesLen);
+	u16 bgbTid = tileEngine.add(dungeonBTiles, dungeonBTilesLen);
 
 	TileMap map;
 	map.compression = COMPRESSION_NONE;
 	map.h = 32;
 	map.w = 64;
-	map.tilemap = bgBTileMap;
+	map.tilemap = dungeonBTileMap;
 	VDP_setTileMapEx(BG_B, &map,
 			TILE_ATTR_FULL(bgbPid, FALSE, FALSE, FALSE, bgbTid), 0, 0, 0, 0, 64,
-			32, DMA);
-	map.tilemap = bgATileMap;
+			64, DMA);
+	map.tilemap = dungeonATileMap;
 	VDP_setTileMapEx(BG_A, &map,
 			TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0, 0, 0, 64,
-			32, DMA);
+			64, DMA);
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
