@@ -17,74 +17,11 @@ extern "C" {
 #include "height.h"
 
 #include "fix16.hpp"
+#include "src/Sprites.hpp"
+#include "src/Tiles.hpp"
 
 //#include <iterator> // For std::forward_iterator_tag
 //#include <cstddef>  // For std::ptrdiff_t
-
-class Sprites {
-	int maxlen;
-	int n;
-	VDPSprite sprites[2];
-	static Sprites s_instance;
-public:
-	Sprites(int maxlen = 80) :
-			maxlen(maxlen) {
-		n = 0;
-
-	}
-	static Sprites& instance() {
-		return s_instance;
-	}
-	u16 add(u16 x, u16 y, u8 size, u16 attr) {
-		u16 sid = n;
-		if (n == maxlen)
-			return sid;
-		if (n > 0)
-			sprites[n - 1].link = n;
-		sprites[n].link = 0;
-		sprites[n].attribut = attr;
-		sprites[n].size = size;
-		sprites[n].x = x + 0x80;
-		sprites[n].y = y + 0x80;
-		n++;
-		return sid;
-	}
-
-	void setX(int index, s16 x) {
-		sprites[index].x = x + 0x80;
-	}
-	void setY(int index, s16 y) {
-		sprites[index].y = y + 0x80;
-	}
-	void setHFlip(int index, u16 hflip) {
-		sprites[index].attribut = (sprites[index].attribut
-				& (~TILE_ATTR_HFLIP_MASK)) + (hflip << TILE_ATTR_HFLIP_SFT);
-	}
-
-	void update() {
-		DMA_transfer(DMA, DMA_VRAM, sprites, VDP_SPRITE_TABLE,
-				n * sizeof(VDPSprite) / 2, 2);
-	}
-};
-Sprites Sprites::s_instance;
-
-class Tiles {
-	u16 n;
-public:
-	Tiles() {
-		n = TILE_USERINDEX;
-	}
-	u16 add(const u32 *tiles, u16 num) {
-		u16 tid = n;
-		VDP_loadTileData(tiles, tid, num / 8, DMA);
-		n += num / 8;
-		return tid;
-	}
-
-	void update(u16 tid, const u32 *tiles, u16 num) {
-		VDP_loadTileData(tiles, tid, num / 8, DMA);
-	}
-};
 
 //Tiles tileEngine;
 //Sprites spriteEngine;
@@ -331,25 +268,34 @@ private:
 //	const s16 subpixels = 8;
 	FixPoint m_x, m_y;
 	u16 m_w, m_h;
-	FixPoint m_speed[2];
+	std::array<FixPoint, 2> m_speed;
 	u16 m_hflip, m_vflip;
 	u8 m_aid, m_rt;
 
 //	float f_speed[2];
 //	float f_x, f_y;
+	Sprites *m_sprites;
+	Tiles *m_tiles;
+	u16 m_tid;
+	u16 m_sid;
 public:
-	Player(s16 x, s16 y, u16 w, u16 h) :
-			m_x(x), m_y(y), m_w(w), m_h(h) {
-		m_speed[0] = 0;
-		m_speed[1] = 0;
+	Player(s16 x, s16 y, u16 w, u16 h, Sprites *sprites, Tiles *tiles) :
+			m_x(x), m_y(y), m_w(w), m_h(h), m_speed( { 0.f, 0.f }), m_sprites(
+					sprites), m_tiles(tiles) {
+
 		m_hflip = 0;
 		m_vflip = 0;
 		m_aid = 0;
 		m_rt = 0;
-//		f_speed[0] = 0;
-//		f_speed[1] = 0;
-//		f_x = 0;
-//		f_y = 0;
+
+		// add palette
+
+		// add tiles
+		m_tid = m_tiles->add(kirbyTiles, 8 * (1 * 1));
+
+		// add sprite
+		m_sid = m_sprites->add(140, 72, SPRITE_SIZE(1, 1),
+				TILE_ATTR_FULL(PAL0, 1, 0, 0, m_tid));
 	}
 	s16 x() {
 		//return (s16) m_x / SUBPIXELS;
@@ -468,36 +414,10 @@ public:
 				m_speed[1] = 0;
 			}
 		}
-		/*
-		 m_x += m_speed[0];
-		 if(colliding(collision))
-		 m_x -= m_speed[0];
 
-		 m_y -= m_speed[1];
-		 if(colliding(collision))
-		 m_y += m_speed[1];
-		 */
-		return;
-
-		/*s16 x2 = m_x + m_speed[0];
-		 s16 y2 = m_y - m_speed[1];
-		 LineIterator it( { m_x, m_y }, { x2, y2 });
-		 for (auto p : it) {
-		 for (u8 i = 0; i < 7; i++)
-		 it++;
-		 if (p.x != (s16) m_x) {
-		 s16 old_x = m_x;
-		 m_x = p.x;
-		 if (colliding(collision))
-		 m_x = old_x;
-		 }
-		 if (p.y != (s16) m_y) {
-		 s16 old_y = m_y;
-		 m_y = p.y;
-		 if (colliding(collision))
-		 m_y = old_y;
-		 }
-		 }*/
+		m_sprites->setX(0, x());
+		m_sprites->setY(0, y());
+		m_sprites->setHFlip(0, hflip());
 	}
 
 	u16 pos2tid(s16 pos) {
@@ -579,25 +499,11 @@ int main(int hardReset) {
 //
 //	// TILES
 	Tiles tileEngine;
-	u16 kirbyTid = tileEngine.add(kirbyTiles, kirbyTilesLen);
-//	u16 mushroomTid = tileEngine.add(quietschiTiles, quietschiTilesLen);
-//	u16 mushroomTid = tileEngine.add(marioTiles, 8 * (4 * 4));
-//	u16 mushroomTid = tileEngine.add(charTiles, 8*(4*4));
 
 	// SPRITES
 	Sprites spriteEngine;
-	//Sprites& spriteEngine = Sprites::instance();
-	spriteEngine.add(10, 10, SPRITE_SIZE(1, 1),
-			TILE_ATTR_FULL(kirbyPid, 1, 0, 0, kirbyTid));
-//	spriteEngine.add(140, 72, SPRITE_SIZE(4, 4),
-//			TILE_ATTR_FULL(mushroomPid, 1, 0, 0, mushroomTid));
-	spriteEngine.update();
 
 	// BACKGROUND
-	/*TileSet bg_a;
-	 bg_a.compression = COMPRESSION_NONE;
-	 bg_a.numTile = bgATilesLen / 8;
-	 bg_a.tiles = bgATiles;*/
 	u16 bgaTid = tileEngine.add(bgATiles, bgATilesLen);
 	u16 bgbTid = tileEngine.add(bgBTiles, bgBTilesLen);
 
@@ -616,8 +522,7 @@ int main(int hardReset) {
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
 
-	Player player0(20, 40, 8, 8);
-//	Player player1(20, 40, 32, 32);
+	Player player0(20, 40, 8, 8, &spriteEngine, &tileEngine);
 	PlayerIso player1(&spriteEngine, &tileEngine);
 
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
@@ -629,9 +534,6 @@ int main(int hardReset) {
 		// ...
 
 		player0.update(&map, JOY_2);
-		spriteEngine.setX(0, player0.x());
-		spriteEngine.setY(0, player0.y());
-		spriteEngine.setHFlip(0, player0.hflip());
 
 		player1.update(&map, JOY_1);
 

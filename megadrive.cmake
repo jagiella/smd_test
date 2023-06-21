@@ -81,7 +81,7 @@ function(add_rom target_name)
 			/opt/gendev/sgdk/lib/)
 	target_link_options(${rom_name}
 		PUBLIC
-			 -T /opt/gendev/sgdk/md.ld -nostdlib -Wl,--gc-sections,--build-id=none,-znoexecstack)
+			 -n -T /opt/gendev/sgdk/md.ld -nostdlib -Wl,--gc-sections,--build-id=none,-znoexecstack)
 	
 	add_custom_command(
 	    TARGET ${rom_name}

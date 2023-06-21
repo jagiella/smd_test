@@ -6,4 +6,6 @@ project(smd_test
 	C CXX ASM)
 
 add_rom(smd_test
+	src/Tiles.cpp
+	src/Sprites.cpp
 	smd_test.cpp)
