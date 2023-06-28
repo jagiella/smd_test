@@ -32,6 +32,15 @@ u16 Sprites::add(u16 x, u16 y, u8 size, u16 attr) {
 	return sid;
 }
 
+void Sprites::remove(int index) {
+	// todo: assume to be last
+	n--;
+	sprites[n].link = 0;
+	sprites[n].y = 0;
+	update();
+	sprites[n-1].link = 0;
+}
+
 void Sprites::setX(int index, s16 x) {
 	sprites[index].x = x + 0x80;
 }

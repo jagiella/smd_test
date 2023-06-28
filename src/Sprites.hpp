@@ -19,6 +19,7 @@ public:
 	void setY(int index, s16 y);
 	void setHFlip(int index, u16 hflip);
 	void update();
+	void remove(int index);
 };
 
 #endif /* SRC_SPRITES_HPP_ */

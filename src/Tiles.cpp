@@ -20,6 +20,11 @@ u16 Tiles::add(const u32 *tiles, u16 num) {
 	return tid;
 }
 
+void Tiles::remove(u16 tid, u16 num){
+	// todo: reorganize tiles
+	n -= num / 8;
+}
+
 void Tiles::update(u16 tid, const u32 *tiles, u16 num) {
 	VDP_loadTileData(tiles, tid, num / 8, DMA);
 }

@@ -2,12 +2,26 @@ extern "C" {
 #include "genesis.h"
 }
 
+void* operator new(unsigned int size) {
+	return malloc(size);
+}
+void operator delete(void *ptr) {
+	free(ptr);
+}
+void operator delete(void *ptr, unsigned int) {
+	free(ptr);
+}
+/*void LIBGCC2_UNWIND_ATTRIBUTE _Unwind_Resume(struct _Unwind_Exception * object){
+
+ }*/
+
 #include <initializer_list>
 #include <array>
+//#include <list>
 
 #include "kirby.h"
 #include "mario.h"
-#include "mushroom.h"
+//#include "mushroom.h"
 #include "quietschi.h"
 #include "char.h"
 #include "bgA.h"
@@ -19,6 +33,7 @@ extern "C" {
 #include "fix16.hpp"
 #include "src/Sprites.hpp"
 #include "src/Tiles.hpp"
+#include "src/Projectile.hpp"
 
 //#include <iterator> // For std::forward_iterator_tag
 //#include <cstddef>  // For std::ptrdiff_t
@@ -59,6 +74,36 @@ extern "C" {
  }
  };
  */
+
+template<class T>
+class list {
+private:
+	std::array<T*, 10> m_array;
+	unsigned char m_count;
+public:
+	list() :
+			m_count(0) {
+
+	}
+	void push(T *value) {
+		m_array[m_count] = value;
+		m_count++;
+	}
+	template<class ...Args>
+	void emplace(Args ... args) {
+		m_array[m_count] = new T(args...);
+		m_count++;
+	}
+	bool empty() {
+		return m_count == 0;
+	}
+	void pop() {
+		m_count--;
+		delete m_array[m_count];
+	}
+
+};
+
 #define SUBPIXELS 4
 #define ABS(x) ((x)<0 ? -(x) : (x) )
 //#define sign(x) (x<0 ? (-1) : (x>0 ? 1 : 0) )
@@ -250,7 +295,7 @@ public:
 		return (s16) m_x / SUBPIXELS;
 	}
 	s16 y() {
-		return (s16) (m_y - m_z) / SUBPIXELS;
+		return (s16)(m_y - m_z) / SUBPIXELS;
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -525,6 +570,9 @@ int main(int hardReset) {
 	Player player0(20, 40, 8, 8, &spriteEngine, &tileEngine);
 	PlayerIso player1(&spriteEngine, &tileEngine);
 
+	list<Projectile> projectiles;
+	//int n_projectiles = 0;
+
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
 	//u16 aid_old = 0;
@@ -536,6 +584,15 @@ int main(int hardReset) {
 		player0.update(&map, JOY_2);
 
 		player1.update(&map, JOY_1);
+
+		if (JOY_readJoypad(JOY_1) & BUTTON_B) {
+			if (projectiles.empty()) {
+				projectiles.emplace(&spriteEngine, &tileEngine);
+			} else {
+				projectiles.pop();
+				//spriteEngine.remove(2);
+			}
+		}
 
 		spriteEngine.update();
 

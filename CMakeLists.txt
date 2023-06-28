@@ -8,4 +8,5 @@ project(smd_test
 add_rom(smd_test
 	src/Tiles.cpp
 	src/Sprites.cpp
+	src/Projectile.cpp
 	smd_test.cpp)

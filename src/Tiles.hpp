@@ -14,6 +14,7 @@ public:
 	Tiles();
 	u16 add(const u32 *tiles, u16 num);
 	void update(u16 tid, const u32 *tiles, u16 num);
+	void remove(u16 index, u16 num);
 };
 
 
