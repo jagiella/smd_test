@@ -517,9 +517,9 @@ int main(int hardReset) {
 	// SPRITES
 	Sprites spriteEngine(128);
 	spriteEngine.add(10, 10, SPRITE_SIZE(1, 1),
-			TILE_ATTR_FULL(kirbyPid, 1, 0, 0, kirbyTid));
+			TILE_ATTR_FULL(kirbyPid, 0, 0, 0, kirbyTid));
 	spriteEngine.add(140, 72, SPRITE_SIZE(4, 4),
-			TILE_ATTR_FULL(mushroomPid, 1, 0, 0, mushroomTid));
+			TILE_ATTR_FULL(mushroomPid, 0, 0, 0, mushroomTid));
 	spriteEngine.update();
 
 	// BACKGROUND
@@ -540,7 +540,7 @@ int main(int hardReset) {
 			64, DMA);
 	map.tilemap = dungeonATileMap;
 	VDP_setTileMapEx(BG_A, &map,
-			TILE_ATTR_FULL(bgaPid, FALSE, FALSE, FALSE, bgaTid), 0, 0, 0, 0, 64,
+			TILE_ATTR_FULL(bgaPid, TRUE, FALSE, FALSE, bgaTid), 0, 0, 0, 0, 64,
 			64, DMA);
 	//VDP_setTileMap(BG_A, &map, 0, 0, 64, 32, DMA);
 	//VDP_drawText("Hello world !", 12, 12);
