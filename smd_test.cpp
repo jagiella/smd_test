@@ -30,7 +30,8 @@ void operator delete(void *ptr, unsigned int) {
 #include "foreground.h"
 #include "height.h"
 
-#include "fix16.hpp"
+#include "src/fix16.hpp"
+#include "src/list.hpp"
 #include "src/Sprites.hpp"
 #include "src/Tiles.hpp"
 #include "src/Projectile.hpp"
@@ -74,35 +75,6 @@ void operator delete(void *ptr, unsigned int) {
  }
  };
  */
-
-template<class T>
-class list {
-private:
-	std::array<T*, 10> m_array;
-	unsigned char m_count;
-public:
-	list() :
-			m_count(0) {
-
-	}
-	void push(T *value) {
-		m_array[m_count] = value;
-		m_count++;
-	}
-	template<class ...Args>
-	void emplace(Args ... args) {
-		m_array[m_count] = new T(args...);
-		m_count++;
-	}
-	bool empty() {
-		return m_count == 0;
-	}
-	void pop() {
-		m_count--;
-		delete m_array[m_count];
-	}
-
-};
 
 #define SUBPIXELS 4
 #define ABS(x) ((x)<0 ? -(x) : (x) )
@@ -196,9 +168,8 @@ private:
 };
 
 class PlayerIso {
-	s16 m_x, m_y, m_z;
-	//u16 m_w, m_h;
-	std::array<s16, 3> m_speed;
+	std::array<FixPoint, 3> m_pos;
+	std::array<FixPoint, 3> m_speed;
 	u16 m_aid, m_rt;
 	u16 m_hflip, m_vflip;
 	//SpriteSequence sprite;
@@ -208,8 +179,8 @@ class PlayerIso {
 	u16 m_sid;
 public:
 	PlayerIso(Sprites *sprites, Tiles *tiles) :
-			m_x(0), m_y(0), m_z(0), m_speed( { 0, 0, 0 }), m_sprites(sprites), m_tiles(
-					tiles) //, sprite(4, 4, 8, marioTiles, 4)
+			m_pos( { 0.f, 0.f, 0.f }), m_speed( { 0.f, 0.f, 0.f }), m_sprites(
+					sprites), m_tiles(tiles) //, sprite(4, 4, 8, marioTiles, 4)
 	{
 		/*#pragma unroll
 		 for (const int dim : { 0, 1, 2 }) {
@@ -234,26 +205,30 @@ public:
 	void update(TileMap *collision, u16 joypad) {
 		u16 joy_state = JOY_readJoypad(joypad);
 
+		FixPoint jumpSpeed = 7.f;
+		FixPoint walkSpeed = 2.f;
+		FixPoint gravity = 1.f;
+
 		m_speed[0] = 0;
 		m_speed[1] = 0;
 
 		if (joy_state & BUTTON_LEFT) {
-			m_speed[0] -= SUBPIXELS * 2;
+			m_speed[0] -= walkSpeed;
 			m_hflip = 1;
 			m_rt++;
 		}
 		if (joy_state & BUTTON_RIGHT) {
-			m_speed[0] += SUBPIXELS * 2;
+			m_speed[0] += walkSpeed;
 			m_hflip = 0;
 			m_rt++;
 		}
 		if (joy_state & BUTTON_UP) {
-			m_speed[1] -= SUBPIXELS * 2;
+			m_speed[1] -= walkSpeed;
 			m_vflip = 1;
 			m_rt++;
 		}
 		if (joy_state & BUTTON_DOWN) {
-			m_speed[1] += SUBPIXELS * 2;
+			m_speed[1] += walkSpeed;
 			m_vflip = 0;
 			m_rt++;
 		}
@@ -268,18 +243,19 @@ public:
 //		}
 
 		if (joy_state & BUTTON_A) {
-			m_speed[2] = 10;
+			m_speed[2] = jumpSpeed;
 		} else {
-			m_speed[2]--;
-			if (m_z < 0) {
-				m_z = 0;
+			if (m_pos[2] <= FixPoint(0.f)) {
+				m_pos[2] = 0;
 				m_speed[2] = 0;
+			} else {
+				m_speed[2] = m_speed[2] - gravity;
 			}
 		}
 
-		m_x += m_speed[0];
-		m_y += m_speed[1];
-		m_z += m_speed[2];
+		m_pos[0] += m_speed[0];
+		m_pos[1] += m_speed[1];
+		m_pos[2] += m_speed[2];
 
 		// update sprite
 		m_sprites->setX(m_sid, x());
@@ -292,10 +268,10 @@ public:
 
 	}
 	s16 x() {
-		return (s16) m_x / SUBPIXELS;
+		return (s16) m_pos[0];
 	}
 	s16 y() {
-		return (s16)(m_y - m_z) / SUBPIXELS;
+		return (s16)(m_pos[1] - m_pos[2]);
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -311,7 +287,7 @@ public:
 class Player {
 private:
 //	const s16 subpixels = 8;
-	FixPoint m_x, m_y;
+	std::array<FixPoint, 2> m_pos;
 	u16 m_w, m_h;
 	std::array<FixPoint, 2> m_speed;
 	u16 m_hflip, m_vflip;
@@ -325,7 +301,7 @@ private:
 	u16 m_sid;
 public:
 	Player(s16 x, s16 y, u16 w, u16 h, Sprites *sprites, Tiles *tiles) :
-			m_x(x), m_y(y), m_w(w), m_h(h), m_speed( { 0.f, 0.f }), m_sprites(
+			m_pos( { x, y }), m_w(w), m_h(h), m_speed( { 0.f, 0.f }), m_sprites(
 					sprites), m_tiles(tiles) {
 
 		m_hflip = 0;
@@ -344,11 +320,11 @@ public:
 	}
 	s16 x() {
 		//return (s16) m_x / SUBPIXELS;
-		return (s16) m_x;
+		return (s16) m_pos[0];
 	}
 	s16 y() {
 		//return (s16) m_y / SUBPIXELS;
-		return (s16) m_y;
+		return (s16) m_pos[1];
 	}
 	u16 hflip() {
 		return m_hflip;
@@ -448,14 +424,14 @@ public:
 		}
 
 		for (s16 i = 0; i < n; i++) {
-			m_x += dx;
+			m_pos[0] += dx;
 			if (colliding(collision)) {
-				m_x -= dx;
+				m_pos[0] -= dx;
 				m_speed[0] = 0;
 			}
-			m_y -= dy;
+			m_pos[1] -= dy;
 			if (colliding(collision)) {
-				m_y += dy;
+				m_pos[1] += dy;
 				m_speed[1] = 0;
 			}
 		}
@@ -576,6 +552,9 @@ int main(int hardReset) {
 //	VDP_setPaletteColors(0,  bgAPal, bgAPalLen);
 	SYS_enableInts();
 	//u16 aid_old = 0;
+
+	u16 joy1_before = JOY_readJoypad(JOY_1);
+
 #pragma GCC unroll 1
 	while (true) {
 		// nothing to do here
@@ -585,13 +564,23 @@ int main(int hardReset) {
 
 		player1.update(&map, JOY_1);
 
-		if (JOY_readJoypad(JOY_1) & BUTTON_B) {
+		u16 joy1_now = JOY_readJoypad(JOY_1);
+		if ((joy1_now & BUTTON_B) and not (joy1_before & BUTTON_B)) {
 			if (projectiles.empty()) {
-				projectiles.emplace(&spriteEngine, &tileEngine);
+				projectiles.emplace(player1.x(), player1.y(), player1.hflip(), &spriteEngine,
+						&tileEngine);
 			} else {
 				projectiles.pop();
 				//spriteEngine.remove(2);
 			}
+		}
+		joy1_before = joy1_now;
+
+		/*for (auto projectile : projectiles.iter()) {
+		 projectile->update();
+		 }*/
+		if (not projectiles.empty()) {
+			projectiles[0]->update();
 		}
 
 		spriteEngine.update();

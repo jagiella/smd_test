@@ -15,32 +15,31 @@
 #define FIX16_FRAC_BITS             (16 - FIX16_INT_BITS)
 
 /*
-typedef signed short s16;
-typedef signed int s32;
-s16 divs(s32 op1, s16 op2) {
-	std::cout << "divs( " << op1 << ", " << op2 << ")" << std::endl;
-	return op1 / op2;
-	//op1 /= op2;
-	//return op1;
-}
+ typedef signed short s16;
+ typedef signed int s32;
+ s16 divs(s32 op1, s16 op2) {
+ std::cout << "divs( " << op1 << ", " << op2 << ")" << std::endl;
+ return op1 / op2;
+ //op1 /= op2;
+ //return op1;
+ }
 
-s32 muls(s16 op1, s16 op2) {
-	std::cout << "muls( " << op1 << ", " << op2 << ")" << std::endl;
-	return op1 * op2;
-}
-*/
+ s32 muls(s16 op1, s16 op2) {
+ std::cout << "muls( " << op1 << ", " << op2 << ")" << std::endl;
+ return op1 * op2;
+ }
+ */
 
 extern s32 muls(s16 op1, s16 op2);
 //extern s16 divs(s32 op1, s16 op2);
 
-inline s16 divs(s32 op1, s16 op2)
-{
-    s32 result = op1;
-    asm ("divs.w %1, %0"
-         : "+d" (result)
-         : "d" (op2)
-         : "cc");
-    return result;
+inline s16 divs(s32 op1, s16 op2) {
+	s32 result = op1;
+	asm ("divs.w %1, %0"
+			: "+d" (result)
+			: "d" (op2)
+			: "cc");
+	return result;
 }
 
 struct FixPoint {
@@ -59,9 +58,9 @@ struct FixPoint {
 		v = fp.v;
 	}
 
-	FixPoint fabs(){
+	FixPoint fabs() {
 		FixPoint out = *this;
-		if(v < 0)
+		if (v < 0)
 			return -out;
 		else
 			return out;
@@ -99,7 +98,6 @@ struct FixPoint {
 		return *this;
 	}
 
-
 	// IN/DECREMENT OPERATORS
 	FixPoint& operator++(int) {
 		v++;
@@ -109,7 +107,6 @@ struct FixPoint {
 		v--;
 		return *this;
 	}
-
 
 	// ARITHMETIC OPERATORS
 	FixPoint operator-() const {
@@ -143,76 +140,81 @@ struct FixPoint {
 		return fp2;
 	}
 
-
 	// COMPARISON
-	bool operator<(const FixPoint& b) const {
+	bool operator<(const FixPoint &b) const {
 		return this->v < b.v;
 	}
-	bool operator>(const FixPoint& b) const {
+	bool operator<=(const FixPoint &b) const {
+		return this->v <= b.v;
+	}
+	bool operator>(const FixPoint &b) const {
 		return this->v > b.v;
 	}
-	bool operator==(const FixPoint& b) const {
+	bool operator>=(const FixPoint &b) const {
+		return this->v >= b.v;
+	}
+	bool operator==(const FixPoint &b) const {
 		return this->v == b.v;
 	}
-	bool operator!=(const FixPoint& b) const {
+	bool operator!=(const FixPoint &b) const {
 		return this->v != b.v;
 	}
 
 	/*FixPoint operator/(const FixPoint &fp1) const {
-		FixPoint fp2 = *this;
-		fp2 /= fp1;
-		return fp2;
-	}*/
+	 FixPoint fp2 = *this;
+	 fp2 /= fp1;
+	 return fp2;
+	 }*/
 
 	operator float() const {
 		return ((float) v) / ((float) (1 << FIX16_FRAC_BITS));
 	}
 	/*operator int() const {
-		return v >> FIX16_FRAC_BITS;
-	}*/
+	 return v >> FIX16_FRAC_BITS;
+	 }*/
 	operator signed short() const {
-			return v >> FIX16_FRAC_BITS;
-		}
+		return v >> FIX16_FRAC_BITS;
+	}
 };
 
 //typedef FixPoint fix16;
 /*
-int main() {
-	fix16 fp = -10.9f;
-	std::cout << fp << std::endl;
-	fix16 fp1 = fp * fp;
-	std::cout << fp1 << std::endl;
-	fp1 = fp1 / fp;
-	std::cout << fp1 << std::endl;
+ int main() {
+ fix16 fp = -10.9f;
+ std::cout << fp << std::endl;
+ fix16 fp1 = fp * fp;
+ std::cout << fp1 << std::endl;
+ fp1 = fp1 / fp;
+ std::cout << fp1 << std::endl;
 
-	fix16 fp2 = 3.3f;
-	fp1 /= fp2;
-	std::cout << fp1 << std::endl;
+ fix16 fp2 = 3.3f;
+ fp1 /= fp2;
+ std::cout << fp1 << std::endl;
 
-	fix16 fp3 = 4.f;
-	fp1 = fp1 + fp3;
-	std::cout << fp1 << std::endl;
+ fix16 fp3 = 4.f;
+ fp1 = fp1 + fp3;
+ std::cout << fp1 << std::endl;
 
-	fix16 fp4 = 40.f;
-	fp1 = fp1 - fp4;
-	std::cout << fp1 << std::endl;
+ fix16 fp4 = 40.f;
+ fp1 = fp1 - fp4;
+ std::cout << fp1 << std::endl;
 
-	std::cout << (float) fp1 << std::endl;
-	std::cout << (int) fp1 << std::endl;
+ std::cout << (float) fp1 << std::endl;
+ std::cout << (int) fp1 << std::endl;
 
-//	sf16 fp1 = -10.f;
-//	sf16 fp2 = 5.f;
-//
-//	std::cout << (float)(fp1 + fp2) << std::endl;
-//	std::cout << (float)(fp2 + fp1) << std::endl;
-//
-//	sf16 fp3 = 10.f;
-//	sf16 fp4 = -5.f;
-//
-//	std::cout << (float)(fp3 + fp4) << std::endl;
-//	std::cout << (float)(fp4 + fp3) << std::endl;
+ //	sf16 fp1 = -10.f;
+ //	sf16 fp2 = 5.f;
+ //
+ //	std::cout << (float)(fp1 + fp2) << std::endl;
+ //	std::cout << (float)(fp2 + fp1) << std::endl;
+ //
+ //	sf16 fp3 = 10.f;
+ //	sf16 fp4 = -5.f;
+ //
+ //	std::cout << (float)(fp3 + fp4) << std::endl;
+ //	std::cout << (float)(fp4 + fp3) << std::endl;
 
-	return 0;
-}*/
+ return 0;
+ }*/
 
 #endif /* FIX16_HPP_ */

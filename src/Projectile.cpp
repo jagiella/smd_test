@@ -9,13 +9,13 @@
 
 #include "../mushroom.h"
 
-
-Projectile::Projectile(): m_sprites(nullptr), m_tiles(nullptr){
+Projectile::Projectile() :
+		m_pos( { 0.f, 0.f }), m_hflip(0), m_sprites(nullptr), m_tiles(nullptr) {
 
 }
 
-Projectile::Projectile(Sprites *sprites, Tiles *tiles) :
-		m_sprites(sprites), m_tiles(tiles) {
+Projectile::Projectile(s16 x, s16 y, u16 hflip, Sprites *sprites, Tiles *tiles) :
+		m_pos( { x, y }), m_hflip(hflip), m_sprites(sprites), m_tiles(tiles) {
 	// add tiles
 	m_tid = m_tiles->add(mushroomTiles, 8 * (2 * 2));
 
@@ -24,12 +24,18 @@ Projectile::Projectile(Sprites *sprites, Tiles *tiles) :
 			TILE_ATTR_FULL(PAL1, 1, 0, 0, m_tid));
 }
 
-Projectile::~Projectile(){
+Projectile::~Projectile() {
 	m_tiles->remove(m_tid, 8 * (2 * 2));
 	m_sprites->remove(m_sid);
 }
 
-void Projectile::update(){
-	m_sprites->setX(m_sid, 80);
-	m_sprites->setY(m_sid, 80);
+void Projectile::update() {
+	if(m_hflip)
+		m_pos[0] -= FixPoint(4.f);
+	else
+		m_pos[0] += FixPoint(4.f);
+
+
+	m_sprites->setX(m_sid, m_pos[0]);
+	m_sprites->setY(m_sid, m_pos[1]);
 }

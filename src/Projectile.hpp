@@ -13,15 +13,20 @@ extern "C" {
 }
 #include "Sprites.hpp"
 #include "Tiles.hpp"
+#include "fix16.hpp"
+
+#include <array>
 
 class Projectile {
+	std::array<FixPoint,2> m_pos;
+	u16 m_hflip;
 	Sprites *m_sprites;
 	Tiles *m_tiles;
 	u16 m_tid;
 	u16 m_sid;
 public:
 	Projectile();
-	Projectile(Sprites *sprites, Tiles *tiles);
+	Projectile(s16 x, s16 y, u16 hflip, Sprites *sprites, Tiles *tiles);
 	~Projectile();
 	void update();
 };
