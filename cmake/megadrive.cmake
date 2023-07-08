@@ -60,9 +60,9 @@ add_dependencies(rom_head rom_head.bin)
 
 # Build a Sega Megadrive/Genesis rom:
 # add_rom(<name> source1 [source2 ...])
-function(add_rom target_name)
+function(add_megadrive_rom target_name)
 
-	set(rom_name "${target_name}.out")
+	set(rom_name "${target_name}")
 	add_executable(${rom_name}
 		${ARGN}
 		)
@@ -89,6 +89,38 @@ function(add_rom target_name)
 	    POST_BUILD
 	    COMMAND ${CMAKE_OBJCOPY} ARGS -O binary ${rom_name} ${target_name}.bin
 	)
+endfunction()
+
+
+function(add_megadrive_library target_name)
+
+	set(rom_name "${target_name}")
+	add_library(${rom_name} STATIC
+		${ARGN}
+		)
+	target_include_directories(${rom_name}
+		PUBLIC
+			/opt/gendev/sgdk/inc
+			/opt/gendev/sgdk/res)
+	target_compile_options(${rom_name}
+		PUBLIC
+		-O5 -fuse-linker-plugin -fno-web -fno-gcse -fno-unit-at-a-time -fomit-frame-pointer -MMD
+		)
+	#target_link_libraries(${rom_name}
+	#	rom_head md gcc)	
+	#target_link_directories(${rom_name}
+	#	PUBLIC
+	#		/opt/gendev/sgdk/lib/)
+	target_link_options(${rom_name}
+		PUBLIC
+			 -n -T /opt/gendev/sgdk/md.ld -nostdlib -Wl,--gc-sections,--build-id=none,-znoexecstack)
+	
+	#add_custom_command(
+	#    TARGET ${rom_name}
+	#    BYPRODUCTS ${target_name}.bin
+	#    POST_BUILD
+	#    COMMAND ${CMAKE_OBJCOPY} ARGS -O binary ${rom_name} ${target_name}.bin
+	#)
 endfunction()
 
 

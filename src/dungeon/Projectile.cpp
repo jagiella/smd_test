@@ -7,7 +7,7 @@
 
 #include "Projectile.hpp"
 
-#include "../mushroom.h"
+#include "sprites/mushroom.h"
 
 Projectile::Projectile() :
 		m_pos( { 0.f, 0.f }), m_hflip(0), m_sprites(nullptr), m_tiles(nullptr) {

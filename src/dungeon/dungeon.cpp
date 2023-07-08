@@ -17,64 +17,20 @@ void operator delete(void *ptr, unsigned int) {
 
 #include <initializer_list>
 #include <array>
-//#include <list>
 
-#include "kirby.h"
-#include "mario.h"
-//#include "mushroom.h"
-#include "quietschi.h"
-#include "char.h"
-#include "bgA.h"
-#include "bgB.h"
-#include "background.h"
-#include "foreground.h"
-#include "height.h"
+#include "sprites/kirby.h"
+#include "sprites/mario.h"
 
-#include "src/fix16.hpp"
-#include "src/list.hpp"
-#include "src/Sprites.hpp"
-#include "src/Tiles.hpp"
-#include "src/Projectile.hpp"
+#include "backgrounds/bgA.h"
+#include "backgrounds/bgB.h"
 
-//#include <iterator> // For std::forward_iterator_tag
-//#include <cstddef>  // For std::ptrdiff_t
 
-//Tiles tileEngine;
-//Sprites spriteEngine;
-/*
- class SpriteSequence {
- const u16 m_spriteWidth;
- const u16 m_spriteHeight;
- const u16 m_spriteCount;
- const u32 *m_tiles;
- u16 m_tid;
- u8 m_frameCount;
- u8 m_animationFrames;
- public:
- SpriteSequence(const u16 spriteWidth, const u16 spriteHeight,
- const u16 spriteCount, const u32 *tiles, u8 frames) :
- m_spriteWidth(spriteWidth), m_spriteHeight(spriteHeight), m_spriteCount(
- spriteCount), m_tiles(tiles), m_frameCount(0), m_animationFrames(
- frames) {
- //m_tid = tileEngine.add(m_tiles, 8 * (spriteWidth * spriteHeight));
+#include "fix16.hpp"
+#include "list.hpp"
+#include "Sprites.hpp"
+#include "Tiles.hpp"
+#include "Projectile.hpp"
 
- }
- void operator++() {
- m_frameCount = (m_frameCount + 1) % (m_animationFrames * m_spriteCount);
- if (m_frameCount % m_animationFrames == 0) {
- // load tiles
- auto spriteIndex = m_frameCount / m_animationFrames;
- auto spriteSize = 8 * (m_spriteWidth * m_spriteHeight);
- //tileEngine.update(m_tid, m_tiles + spriteIndex, spriteSize);
-
- //spriteEngine.setX(1, player1.x());
- //spriteEngine.setY(1, player1.y());
- //spriteEngine.setHFlip(1, player1.hflip());
- //spriteEngine.update();
- }
- }
- };
- */
 
 #define SUBPIXELS 4
 #define ABS(x) ((x)<0 ? -(x) : (x) )
