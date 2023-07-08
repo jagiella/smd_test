@@ -18,6 +18,7 @@ public:
 	void setX(int index, s16 x);
 	void setY(int index, s16 y);
 	void setHFlip(int index, u16 hflip);
+	void setTileID(int index, u16 tid);
 	void update();
 	void remove(int index);
 };

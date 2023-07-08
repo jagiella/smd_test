@@ -52,6 +52,9 @@ void Sprites::setHFlip(int index, u16 hflip) {
 			(sprites[index].attribut & (~TILE_ATTR_HFLIP_MASK))
 					+ (hflip << TILE_ATTR_HFLIP_SFT);
 }
+void Sprites::setTileID(int index, u16 tid){
+	sprites[index].attribut = tid + (sprites[index].attribut & (TILE_ATTR_PALETTE_MASK | TILE_ATTR_HFLIP_MASK | TILE_ATTR_VFLIP_MASK));
+}
 
 void Sprites::update() {
 	DMA_transfer(DMA, DMA_VRAM, sprites, VDP_SPRITE_TABLE,
