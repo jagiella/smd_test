@@ -53,7 +53,7 @@ void Sprites::setHFlip(int index, u16 hflip) {
 					+ (hflip << TILE_ATTR_HFLIP_SFT);
 }
 void Sprites::setTileID(int index, u16 tid){
-	sprites[index].attribut = tid + (sprites[index].attribut & (TILE_ATTR_PALETTE_MASK | TILE_ATTR_HFLIP_MASK | TILE_ATTR_VFLIP_MASK));
+	sprites[index].attribut = tid + (sprites[index].attribut & (TILE_ATTR_PRIORITY_MASK | TILE_ATTR_PALETTE_MASK | TILE_ATTR_HFLIP_MASK | TILE_ATTR_VFLIP_MASK));
 }
 
 void Sprites::update() {

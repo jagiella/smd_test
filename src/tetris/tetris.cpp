@@ -197,16 +197,16 @@ public:
 		return m_offset_y;
 	}
 	s16 startX() {
-		return width/2;
+		return width / 2;
 	}
 	s16 startY() {
 		return 0;
 	}
-	bool outOfBounds(int x, int y){
-		return (x<0 or x>=width or y<0 or y>=height);
+	bool outOfBounds(int x, int y) {
+		return (x < 0 or x >= width or y < 0 or y >= height);
 	}
 	bool onGround(int x, int y) {
-		if( outOfBounds(x, y))
+		if (outOfBounds(x, y))
 			return false;
 
 		if (y >= height)
@@ -216,7 +216,7 @@ public:
 		return false;
 	}
 	bool onWallLeft(int x, int y) {
-		if( outOfBounds(x, y))
+		if (outOfBounds(x, y))
 			return false;
 		if (x <= 0)
 			return true;
@@ -225,7 +225,7 @@ public:
 		return false;
 	}
 	bool onWallRight(int x, int y) {
-		if( outOfBounds(x, y))
+		if (outOfBounds(x, y))
 			return false;
 		if (x >= width - 1)
 			return true;
@@ -239,7 +239,7 @@ class Tetris {
 private:
 	Playfield *m_playfield;
 	Sprites *m_sprites;
-	u16 m_tid, m_sid[4];
+	u16 m_tid, m_sid[4], m_sid_ghost[4];
 	u8 m_rotation;
 	PieceType m_pieceType;
 	u16 m_x, m_y;
@@ -247,13 +247,23 @@ private:
 //std::array
 public:
 	Tetris(Playfield *playfield, Sprites *sprites, u16 tid, PieceType pieceType) :
-			m_playfield(playfield), m_sprites(sprites), m_tid(tid), m_rotation(0), m_pieceType(pieceType) {
+			m_playfield(playfield), m_sprites(sprites), m_tid(tid), m_rotation(
+					0), m_pieceType(pieceType) {
+
+		// piece
 		for (int i = 0; i < 4; i++) {
 			m_sid[i] = m_sprites->add(Offset[pieceType][i][0],
 					Offset[pieceType][i][1], SPRITE_SIZE(1, 1),
 					TILE_ATTR_FULL(PAL0, 1, 0, 0, m_tid + TileID[pieceType]));
-
 		}
+		// ghost piece
+		for (int i = 0; i < 4; i++) {
+			m_sid_ghost[i] = m_sprites->add(Offset[pieceType][i][0],
+					Offset[pieceType][i][1], SPRITE_SIZE(1, 1),
+					TILE_ATTR_FULL(PAL0, 0, 0, 0, m_tid + 3));
+		}
+
+
 		m_x = m_playfield->startX();
 		m_y = m_playfield->startY();
 		joy1_before = JOY_readJoypad(JOY_1);
@@ -301,6 +311,25 @@ public:
 			m_sprites->setX(m_sid[i], 8 * (posX(i) + m_playfield->offsetX()));
 			m_sprites->setY(m_sid[i], 8 * (posY(i) + m_playfield->offsetY()));
 		}
+
+		//estimate ghost y
+		s16 dy_ghost = 0;
+		bool ghost_on_ground = onGround();
+		while (not ghost_on_ground) {
+			dy_ghost++;
+			for (int i = 0; i < 4; i++) {
+				if (m_playfield->onGround(posX(i), posY(i) + dy_ghost))
+					ghost_on_ground = true;
+			}
+		}
+
+		for (int i = 0; i < 4; i++) {
+			m_sprites->setX(m_sid_ghost[i],
+					8 * (posX(i) + m_playfield->offsetX()));
+			m_sprites->setY(m_sid_ghost[i],
+					8 * (posY(i) + dy_ghost + m_playfield->offsetY()));
+		}
+
 	}
 
 	s16 posX(int i) {
