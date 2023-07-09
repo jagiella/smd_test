@@ -121,11 +121,18 @@ public:
 			}
 
 			if(not found_empty){
-				for(int col=1; col<31; col++){
+				/*for(int col=1; col<31; col++){
 					setTile(col, row, TILE_Empty);
-				}
-
+				}*/
 				removed_lines++;
+			} else {
+				if(removed_lines > 0) {
+					// move lines down
+					for(int col=1; col<31; col++){
+						setTile(col, row+removed_lines, getTile(col, row));
+						setTile(col, row, TILE_Empty);
+					}
+				}
 			}
 		}
 
@@ -264,6 +271,10 @@ public:
 		m_y = 0;
 		m_pieceType = static_cast<PieceType>((m_pieceType+1) % 7);
 		m_rotation = 0;
+
+		for (int i = 0; i < 4; i++) {
+			m_sprites->setTileID(m_sid[i] , m_tid + TileID[m_pieceType]);
+		}
 	}
 };
 
