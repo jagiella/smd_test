@@ -12,10 +12,11 @@ extern "C" {
 #include "Sprites.hpp"
 #include "Tiles.hpp"
 
-#include "tetris.h"
+//#include "tetris.h"
+#include "res/tetrion.h"
 
 enum TileTypes : u16 {
-	TILE_Background = 0,
+	TILE_Empty = 0,
 	TILE_J = 1,
 	TILE_S = 2,
 	TILE_L = 3,
@@ -23,7 +24,7 @@ enum TileTypes : u16 {
 	TILE_Z = 5,
 	TILE_I = 6,
 	TILE_O = 7,
-	TILE_Empty = 8
+	TILE_Ghost = 8
 };
 
 enum PieceType : int {
@@ -58,8 +59,12 @@ public:
 	Background(u16 tid, u16 pid) :
 			m_tid(tid), m_pid(pid), pending_changes(false) {
 
+		//auto tmp = static_cast<const u16*>(&tetrionTiles[0]);
+		//auto tmp = reinterpret_cast<u32*>(tilemap);
+		//for (auto i = 0; i < tetrionTilesLen; i++)
+		//	tmp[i] =  tetrionTiles[i];
 		for (auto i = 0; i < m_w * m_h; i++)
-			tilemap[i] = TILE_Empty;
+			tilemap[i] = tetrionTileMap[i];
 
 		// set vertical walls
 		/*for (auto i = 0; i < 32; i++) {
@@ -81,11 +86,11 @@ public:
 				m_w, m_h, DMA);
 	}
 
-	TileTypes getTile(int x, int y) {
-		return static_cast<TileTypes>(tilemap[x + y * m_w]);
+	u16 getTile(int x, int y) {
+		return tilemap[x + y * m_w];
 	}
 
-	void setTile(int x, int y, TileTypes type) {
+	void setTile(int x, int y, u16 type) {
 		tilemap[x + y * m_w] = type;
 		pending_changes = true;
 	}
@@ -143,16 +148,16 @@ public:
 			m_background(background), m_offset_x(x), m_offset_y(y) {
 		// paint tetrion (surrounding frame)
 		// set vertical walls
-		for (auto y = 0; y < height; y++) {
+		/*for (auto y = 0; y < height; y++) {
 			// left
-			setTile(-1, y, TILE_Background);
+			setTile(-1, y, TILE_Ghost);
 			// right
-			setTile(width, y, TILE_Background);
+			setTile(width, y, TILE_Ghost);
 		}
 		// set horizontal walls
 		for (auto x = -1; x < width + 1; x++) {
-			setTile(x, height, TILE_Background);
-		}
+			setTile(x, height, TILE_Ghost);
+		}*/
 	}
 
 	void update() {
@@ -182,11 +187,11 @@ public:
 		}
 	}
 
-	TileTypes getTile(int x, int y) {
+	u16 getTile(int x, int y) {
 		return m_background->getTile(m_offset_x + x, m_offset_y + y);
 	}
 
-	void setTile(int x, int y, TileTypes type) {
+	void setTile(int x, int y, u16 type) {
 		m_background->setTile(m_offset_x + x, m_offset_y + y, type);
 	}
 
@@ -244,6 +249,7 @@ private:
 	PieceType m_pieceType;
 	u16 m_x, m_y;
 	u16 joy1_before;
+	bool use_ghost = true;
 //std::array
 public:
 	Tetris(Playfield *playfield, Sprites *sprites, u16 tid, PieceType pieceType) :
@@ -257,12 +263,12 @@ public:
 					TILE_ATTR_FULL(PAL0, 1, 0, 0, m_tid + TileID[pieceType]));
 		}
 		// ghost piece
-		for (int i = 0; i < 4; i++) {
-			m_sid_ghost[i] = m_sprites->add(Offset[pieceType][i][0],
-					Offset[pieceType][i][1], SPRITE_SIZE(1, 1),
-					TILE_ATTR_FULL(PAL0, 0, 0, 0, m_tid + 3));
-		}
-
+		if (use_ghost)
+			for (int i = 0; i < 4; i++) {
+				m_sid_ghost[i] = m_sprites->add(Offset[pieceType][i][0],
+						Offset[pieceType][i][1], SPRITE_SIZE(1, 1),
+						TILE_ATTR_FULL(PAL0, 0, 0, 0, m_tid + TILE_Ghost));
+			}
 
 		m_x = m_playfield->startX();
 		m_y = m_playfield->startY();
@@ -313,21 +319,23 @@ public:
 		}
 
 		//estimate ghost y
-		s16 dy_ghost = 0;
-		bool ghost_on_ground = onGround();
-		while (not ghost_on_ground) {
-			dy_ghost++;
-			for (int i = 0; i < 4; i++) {
-				if (m_playfield->onGround(posX(i), posY(i) + dy_ghost))
-					ghost_on_ground = true;
+		if (use_ghost) {
+			s16 dy_ghost = 0;
+			bool ghost_on_ground = onGround();
+			while (not ghost_on_ground) {
+				dy_ghost++;
+				for (int i = 0; i < 4; i++) {
+					if (m_playfield->onGround(posX(i), posY(i) + dy_ghost))
+						ghost_on_ground = true;
+				}
 			}
-		}
 
-		for (int i = 0; i < 4; i++) {
-			m_sprites->setX(m_sid_ghost[i],
-					8 * (posX(i) + m_playfield->offsetX()));
-			m_sprites->setY(m_sid_ghost[i],
-					8 * (posY(i) + dy_ghost + m_playfield->offsetY()));
+			for (int i = 0; i < 4; i++) {
+				m_sprites->setX(m_sid_ghost[i],
+						8 * (posX(i) + m_playfield->offsetX()));
+				m_sprites->setY(m_sid_ghost[i],
+						8 * (posY(i) + dy_ghost + m_playfield->offsetY()));
+			}
 		}
 
 	}
@@ -343,6 +351,7 @@ public:
 		case 3:
 			return m_x - Offset[m_pieceType][i][1];
 		}
+		return 0;
 	}
 	s16 posY(int i) {
 		switch (m_rotation) {
@@ -355,6 +364,7 @@ public:
 		case 3:
 			return m_y + Offset[m_pieceType][i][0];
 		}
+		return 0;
 	}
 
 	bool onGround() {
@@ -383,7 +393,8 @@ public:
 
 	void toBackground() {
 		for (int i = 0; i < 4; i++) {
-			m_playfield->setTile(posX(i), posY(i), TILE_Background);
+			//m_playfield->setTile(posX(i), posY(i), static_cast<TileTypes>(m_tid + TileID[m_pieceType]));
+			m_playfield->setTile(posX(i), posY(i), TileID[m_pieceType]);
 		}
 
 		m_x = m_playfield->startX();
@@ -406,10 +417,10 @@ int main(int hardReset) {
 
 // Palette
 	u16 pid = PAL0;
-	VDP_setPalette(pid, tetrisPal);
+	VDP_setPalette(pid, tetrionPal);
 
 // Tiles
-	u16 tid = tiles.add(tetrisTiles, tetrisTilesLen);
+	u16 tid = tiles.add(tetrionTiles, tetrionTilesLen);
 
 // Background
 	/*TileMap map;
