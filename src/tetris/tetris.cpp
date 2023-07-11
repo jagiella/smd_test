@@ -15,6 +15,10 @@ extern "C" {
 //#include "tetris.h"
 #include "res/tetrion.h"
 
+const int ScoringFactor[] = { 0, 40, 100, 300, 1200 };
+const int LevelSpeed[] = { 48, 43, 38, 33, 28, 23, 18, 13, 8, 6, 5, 5, 5, 4, 4,
+		4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1 };
+
 enum TileTypes : u16 {
 	TILE_Empty = 0,
 	TILE_J = 1,
@@ -141,12 +145,12 @@ protected:
 	Background *m_background;
 	int m_offset_x;
 	int m_offset_y;
-	int width;
-	int height;
+	int m_width;
+	int m_height;
 
 public:
 	BackgroundView(Background *background, int x, int y, int w, int h) :
-			m_background(background), m_offset_x(x), m_offset_y(y), width(w), height(
+			m_background(background), m_offset_x(x), m_offset_y(y), m_width(w), m_height(
 					h) {
 	}
 
@@ -158,8 +162,8 @@ public:
 		m_background->setTile(m_offset_x + x, m_offset_y + y, type);
 	}
 	void fill(u16 type) {
-		for (auto x = 0; x < width; x++) {
-			for (auto y = 0; y < height; y++)
+		for (auto x = 0; x < m_width; x++) {
+			for (auto y = 0; y < m_height; y++)
 				m_background->setTile(m_offset_x + x, m_offset_y + y, type);
 		}
 	}
@@ -170,15 +174,21 @@ public:
 	s16 offsetY() {
 		return m_offset_y;
 	}
+	s16 width() {
+		return m_width;
+	}
+	s16 height() {
+		return m_height;
+	}
 
 	bool outOfBounds(int x, int y) {
-		return (x < 0 or x >= width or y < 0 or y >= height);
+		return (x < 0 or x >= m_width or y < 0 or y >= m_height);
 	}
 	bool onGround(int x, int y) {
 		if (outOfBounds(x, y))
 			return false;
 
-		if (y >= height)
+		if (y >= m_height)
 			return true;
 		if (getTile(x, y + 1) != TILE_Empty)
 			return true;
@@ -196,7 +206,7 @@ public:
 	bool onWallRight(int x, int y) {
 		if (outOfBounds(x, y))
 			return false;
-		if (x >= width - 1)
+		if (x >= m_width - 1)
 			return true;
 		if (getTile(x + 1, y) != TILE_Empty)
 			return true;
@@ -208,7 +218,7 @@ class Playfield: public BackgroundView {
 public:
 	using BackgroundView::BackgroundView;
 	s16 startX() {
-		return width / 2;
+		return m_width / 2;
 	}
 	s16 startY() {
 		return 0;
@@ -216,10 +226,10 @@ public:
 	int clearLines() {
 		// check full lines
 		int removed_lines = 0;
-		for (int row = height - 1; row > 0; row--) {
+		for (int row = m_height - 1; row > 0; row--) {
 			// check line
 			bool found_empty = false;
-			for (int col = 0; col < width; col++) {
+			for (int col = 0; col < m_width; col++) {
 				if (getTile(col, row) == TILE_Empty) {
 					found_empty = true;
 					break;
@@ -231,7 +241,7 @@ public:
 			} else {
 				if (removed_lines > 0) {
 					// move lines down
-					for (int col = 0; col < width; col++) {
+					for (int col = 0; col < m_width; col++) {
 						setTile(col, row + removed_lines, getTile(col, row));
 						setTile(col, row, TILE_Empty);
 					}
@@ -240,6 +250,23 @@ public:
 		}
 
 		return removed_lines;
+	}
+};
+
+class NumberField: public BackgroundView {
+	const int number_tiles_offset = 31 * 64;
+public:
+	using BackgroundView::BackgroundView;
+	void setNumber(int number) {
+		//int digits[5];
+		for (int i = 0; i < m_width; i++) {
+			auto digit = number % 10;
+			setTile(m_width - 1 - i, 0,
+					tetrionTileMap[number_tiles_offset + digit]);
+			number /= 10;
+			if (number == 0)
+				break;
+		}
 	}
 };
 
@@ -296,10 +323,28 @@ public:
 				m_y++;
 
 		if ((joy1_now & BUTTON_A) and not (joy1_before & BUTTON_A)) {
-			m_rotation = (m_rotation + 1) % 4; // Todo: check if not leading to wall collision
+			rotateClockwise();
+
+			// check if not leading to wall collision
+			for (int i = 0; i < 4; i++) {
+				if (posX(i) < 0 or posX(i) >= m_playfield->width()) {
+					rotateCounterClockwise();
+					break;
+				}
+
+			}
 		}
 		if ((joy1_now & BUTTON_B) and not (joy1_before & BUTTON_B)) {
-			m_rotation = (m_rotation + 3) % 4; // Todo: check if not leading to wall collision
+			rotateCounterClockwise();
+
+			// check if not leading to wall collision
+			for (int i = 0; i < 4; i++) {
+				if (posX(i) < 0 or posX(i) >= m_playfield->width()) {
+					rotateClockwise();
+					break;
+				}
+
+			}
 		}
 
 		paint();
@@ -315,6 +360,13 @@ public:
 			updateNext();
 		}
 		paint();
+	}
+
+	void rotateClockwise() {
+		m_rotation = (m_rotation + 1) % 4;
+	}
+	void rotateCounterClockwise() {
+		m_rotation = (m_rotation + 3) % 4;
 	}
 
 	void paint() {
@@ -458,11 +510,21 @@ int main(int hardReset) {
 	Background background(tid, pid);
 	Playfield playfield(&background, 15, 0, 10, 20);
 	BackgroundView nextdisplay(&background, 28, 14, 4, 2);
+	NumberField scoredisplay(&background, 26, 3, 7, 1);
+	NumberField leveldisplay(&background, 27, 7, 5, 1);
+	NumberField linedisplay(&background, 27, 10, 5, 1);
 	Tetris tetris(&playfield, &nextdisplay, &sprites, tid, L);
 
 	SYS_enableInts();
 
 	int cycles = 0;
+	int level = 0;
+	int lines = 0;
+	int score = 0;
+
+	scoredisplay.setNumber(score);
+	linedisplay.setNumber(lines);
+	leveldisplay.setNumber(level);
 
 #pragma GCC unroll 1
 	while (true) {
@@ -471,9 +533,23 @@ int main(int hardReset) {
 
 		tetris.update();
 
-		if (cycles % 60 == 0) {
+		if (cycles % LevelSpeed[level] == 0) {
 			tetris.autoupdate();
-			playfield.clearLines();
+			auto cleared_lines = playfield.clearLines();
+
+			// update score
+			score += ScoringFactor[cleared_lines] * (level + 1);
+			scoredisplay.setNumber(score);
+
+			// update lines
+			lines += cleared_lines;
+			linedisplay.setNumber(lines);
+
+			// update level
+			if (lines >= level * 10 + 10) {
+				level++;
+				leveldisplay.setNumber(level);
+			}
 		}
 		cycles++;
 
