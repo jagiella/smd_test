@@ -9,6 +9,8 @@ extern "C" {
 #include "genesis.h"
 }
 
+#include "res/sound.h"
+
 #include "Sprites.hpp"
 #include "Tiles.hpp"
 
@@ -526,6 +528,8 @@ int main(int hardReset) {
 	linedisplay.setNumber(lines);
 	leveldisplay.setNumber(level);
 
+	SND_startPlay_PCM(song_data, song_length, SOUND_RATE_8000, SOUND_PAN_CENTER,
+			1);
 #pragma GCC unroll 1
 	while (true) {
 		// nothing to do here
