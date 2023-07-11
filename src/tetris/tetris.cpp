@@ -33,7 +33,7 @@ enum PieceType : int {
 
 #define OFFSET_J { { -1, 0 }, { 0, 0 }, { 1, 0 }, { 1, 1 } }
 #define OFFSET_L { { -1, 0 }, { -1, 1 }, { 0, 0 }, { 1, 0 } }
-#define OFFSET_I { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 } }
+#define OFFSET_I { { -1, 0 }, { 0, 0 }, { 1, 0 }, { 2, 0 } }
 #define OFFSET_O { { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 } }
 #define OFFSET_S { { -1, 1 }, { 0, 0 }, { 0, 1 }, { 1, 0 } }
 #define OFFSET_Z { { -1, 0 }, { 0, 0 }, { 0, 1 }, { 1, 1 } }
@@ -399,12 +399,16 @@ public:
 
 		m_x = m_playfield->startX();
 		m_y = m_playfield->startY();
-		m_pieceType = static_cast<PieceType>((m_pieceType + 1) % 7);
+		m_pieceType = next();
 		m_rotation = 0;
 
 		for (int i = 0; i < 4; i++) {
 			m_sprites->setTileID(m_sid[i], m_tid + TileID[m_pieceType]);
 		}
+	}
+
+	PieceType next() {
+		return static_cast<PieceType>((m_pieceType + 1) % 7);
 	}
 };
 
@@ -450,6 +454,18 @@ int main(int hardReset) {
 
 		if (cycles % 60 == 0) {
 			tetris.autoupdate();
+
+			// repaint next
+			auto type = tetris.next();
+			for(auto x=-1; x<3; x++){
+				for(auto y=0; y<2; y++)
+					background.setTile(x+29, y+14, TILE_Empty);
+			}
+			for(int i=0; i<4; i++){
+				auto x = Offset[type][i][0];
+				auto y = Offset[type][i][1];
+				background.setTile(x+29, y+14, TileID[type]);
+			}
 		}
 
 		playfield.update();
