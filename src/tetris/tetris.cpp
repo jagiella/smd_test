@@ -136,55 +136,18 @@ public:
 	}
 };
 
-class Playfield {
+class BackgroundView {
+protected:
 	Background *m_background;
-	const int width = 10;
-	const int height = 20;
 	int m_offset_x;
 	int m_offset_y;
+	int width;
+	int height;
 
 public:
-	Playfield(Background *background, int x, int y) :
-			m_background(background), m_offset_x(x), m_offset_y(y) {
-		// paint tetrion (surrounding frame)
-		// set vertical walls
-		/*for (auto y = 0; y < height; y++) {
-			// left
-			setTile(-1, y, TILE_Ghost);
-			// right
-			setTile(width, y, TILE_Ghost);
-		}
-		// set horizontal walls
-		for (auto x = -1; x < width + 1; x++) {
-			setTile(x, height, TILE_Ghost);
-		}*/
-	}
-
-	void update() {
-		// check full lines
-		int removed_lines = 0;
-		for (int row = height - 1; row > 0; row--) {
-			// check line
-			bool found_empty = false;
-			for (int col = 0; col < width; col++) {
-				if (getTile(col, row) == TILE_Empty) {
-					found_empty = true;
-					break;
-				}
-			}
-
-			if (not found_empty) {
-				removed_lines++;
-			} else {
-				if (removed_lines > 0) {
-					// move lines down
-					for (int col = 0; col < width; col++) {
-						setTile(col, row + removed_lines, getTile(col, row));
-						setTile(col, row, TILE_Empty);
-					}
-				}
-			}
-		}
+	BackgroundView(Background *background, int x, int y, int w, int h) :
+			m_background(background), m_offset_x(x), m_offset_y(y), width(w), height(
+					h) {
 	}
 
 	u16 getTile(int x, int y) {
@@ -194,6 +157,12 @@ public:
 	void setTile(int x, int y, u16 type) {
 		m_background->setTile(m_offset_x + x, m_offset_y + y, type);
 	}
+	void fill(u16 type) {
+		for (auto x = 0; x < width; x++) {
+			for (auto y = 0; y < height; y++)
+				m_background->setTile(m_offset_x + x, m_offset_y + y, type);
+		}
+	}
 
 	s16 offsetX() {
 		return m_offset_x;
@@ -201,12 +170,7 @@ public:
 	s16 offsetY() {
 		return m_offset_y;
 	}
-	s16 startX() {
-		return width / 2;
-	}
-	s16 startY() {
-		return 0;
-	}
+
 	bool outOfBounds(int x, int y) {
 		return (x < 0 or x >= width or y < 0 or y >= height);
 	}
@@ -240,9 +204,49 @@ public:
 	}
 };
 
+class Playfield: public BackgroundView {
+public:
+	using BackgroundView::BackgroundView;
+	s16 startX() {
+		return width / 2;
+	}
+	s16 startY() {
+		return 0;
+	}
+	int clearLines() {
+		// check full lines
+		int removed_lines = 0;
+		for (int row = height - 1; row > 0; row--) {
+			// check line
+			bool found_empty = false;
+			for (int col = 0; col < width; col++) {
+				if (getTile(col, row) == TILE_Empty) {
+					found_empty = true;
+					break;
+				}
+			}
+
+			if (not found_empty) {
+				removed_lines++;
+			} else {
+				if (removed_lines > 0) {
+					// move lines down
+					for (int col = 0; col < width; col++) {
+						setTile(col, row + removed_lines, getTile(col, row));
+						setTile(col, row, TILE_Empty);
+					}
+				}
+			}
+		}
+
+		return removed_lines;
+	}
+};
+
 class Tetris {
 private:
 	Playfield *m_playfield;
+	BackgroundView *m_nextdisplay;
 	Sprites *m_sprites;
 	u16 m_tid, m_sid[4], m_sid_ghost[4];
 	u8 m_rotation;
@@ -252,9 +256,10 @@ private:
 	bool use_ghost = true;
 //std::array
 public:
-	Tetris(Playfield *playfield, Sprites *sprites, u16 tid, PieceType pieceType) :
-			m_playfield(playfield), m_sprites(sprites), m_tid(tid), m_rotation(
-					0), m_pieceType(pieceType) {
+	Tetris(Playfield *playfield, BackgroundView *nextdisplay, Sprites *sprites,
+			u16 tid, PieceType pieceType) :
+			m_playfield(playfield), m_nextdisplay(nextdisplay), m_sprites(
+					sprites), m_tid(tid), m_rotation(0), m_pieceType(pieceType) {
 
 		// piece
 		for (int i = 0; i < 4; i++) {
@@ -269,6 +274,8 @@ public:
 						Offset[pieceType][i][1], SPRITE_SIZE(1, 1),
 						TILE_ATTR_FULL(PAL0, 0, 0, 0, m_tid + TILE_Ghost));
 			}
+
+		updateNext();
 
 		m_x = m_playfield->startX();
 		m_y = m_playfield->startY();
@@ -288,14 +295,11 @@ public:
 			if (not onGround())
 				m_y++;
 
-		if ((joy1_now & BUTTON_A) and not (joy1_before & BUTTON_A))
-			m_rotation = (m_rotation + 1) % 4;
-
+		if ((joy1_now & BUTTON_A) and not (joy1_before & BUTTON_A)) {
+			m_rotation = (m_rotation + 1) % 4; // Todo: check if not leading to wall collision
+		}
 		if ((joy1_now & BUTTON_B) and not (joy1_before & BUTTON_B)) {
-			m_pieceType = static_cast<PieceType>((m_pieceType + 1) % 7);
-			for (int i = 0; i < 4; i++) {
-				m_sprites->setTileID(m_sid[i], m_tid + TileID[m_pieceType]);
-			}
+			m_rotation = (m_rotation + 3) % 4; // Todo: check if not leading to wall collision
 		}
 
 		paint();
@@ -304,11 +308,12 @@ public:
 	}
 
 	void autoupdate() {
-		if (not onGround())
+		if (not onGround()) {
 			m_y++;
-		else
+		} else {
 			toBackground();
-
+			updateNext();
+		}
 		paint();
 	}
 
@@ -341,6 +346,7 @@ public:
 	}
 
 	s16 posX(int i) {
+		// Todo: I piece has a particular rotation
 		switch (m_rotation) {
 		case 0:
 			return m_x + Offset[m_pieceType][i][0];
@@ -354,6 +360,7 @@ public:
 		return 0;
 	}
 	s16 posY(int i) {
+		// Todo: I piece has a particular rotation
 		switch (m_rotation) {
 		case 0:
 			return m_y + Offset[m_pieceType][i][1];
@@ -407,6 +414,17 @@ public:
 		}
 	}
 
+	void updateNext() {
+		// repaint next
+		m_nextdisplay->fill(TILE_Empty);
+		auto type = next();
+		for (int i = 0; i < 4; i++) {
+			auto x = Offset[type][i][0];
+			auto y = Offset[type][i][1];
+			m_nextdisplay->setTile(x + 1, y, TileID[type]);
+		}
+	}
+
 	PieceType next() {
 		return static_cast<PieceType>((m_pieceType + 1) % 7);
 	}
@@ -438,8 +456,9 @@ int main(int hardReset) {
 
 // Sprites
 	Background background(tid, pid);
-	Playfield playfield(&background, 15, 0);
-	Tetris tetris(&playfield, &sprites, tid, L);
+	Playfield playfield(&background, 15, 0, 10, 20);
+	BackgroundView nextdisplay(&background, 28, 14, 4, 2);
+	Tetris tetris(&playfield, &nextdisplay, &sprites, tid, L);
 
 	SYS_enableInts();
 
@@ -454,22 +473,8 @@ int main(int hardReset) {
 
 		if (cycles % 60 == 0) {
 			tetris.autoupdate();
-
-			// repaint next
-			auto type = tetris.next();
-			for(auto x=-1; x<3; x++){
-				for(auto y=0; y<2; y++)
-					background.setTile(x+29, y+14, TILE_Empty);
-			}
-			for(int i=0; i<4; i++){
-				auto x = Offset[type][i][0];
-				auto y = Offset[type][i][1];
-				background.setTile(x+29, y+14, TileID[type]);
-			}
+			playfield.clearLines();
 		}
-
-		playfield.update();
-
 		cycles++;
 
 		background.update();
