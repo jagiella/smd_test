@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "res/sound.h"
+#include "res/sound_clear.h"
 
 #include "Sprites.hpp"
 #include "Tiles.hpp"
@@ -528,12 +529,16 @@ int main(int hardReset) {
 	linedisplay.setNumber(lines);
 	leveldisplay.setNumber(level);
 
-	SND_startPlay_PCM(song_data, song_length, SOUND_RATE_8000, SOUND_PAN_CENTER,
-			1);
+	SND_startPlay_4PCM(reinterpret_cast<const u8*>(song_data), song_length,
+			SOUND_PCM_CH1, 1);
+
 #pragma GCC unroll 1
 	while (true) {
 		// nothing to do here
 		// ...
+		//if (not SND_isPlaying_PCM())
+		//	SND_startPlay_PCM(reinterpret_cast<const u8*>(song_data),
+		//			song_length, SOUND_RATE_8000, SOUND_PAN_CENTER, 1);
 
 		tetris.update();
 
@@ -553,6 +558,15 @@ int main(int hardReset) {
 			if (lines >= level * 10 + 10) {
 				level++;
 				leveldisplay.setNumber(level);
+			}
+
+			// play sound
+			if (cleared_lines) {
+				//SND_startPlay_PCM(reinterpret_cast<const u8*>(clear_data),
+				//		clear_length, SOUND_RATE_22050, SOUND_PAN_CENTER, 0);
+				SND_startPlay_4PCM(reinterpret_cast<const u8*>(clear_data), clear_length,
+							SOUND_PCM_CH2, 0);
+
 			}
 		}
 		cycles++;
