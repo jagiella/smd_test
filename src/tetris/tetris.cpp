@@ -9,6 +9,8 @@ extern "C" {
 #include "genesis.h"
 }
 
+#include <array>
+
 #include "res/sound.h"
 #include "res/sound_clear.h"
 
@@ -273,6 +275,41 @@ public:
 	}
 };
 
+class RandomBag {
+private:
+	std::array<PieceType, 7> m_bag;
+	int m_size;
+public:
+	RandomBag() :
+			m_bag( { I, J, L, S, Z, T, O }), m_size(7) {
+		// initial shuffle
+		shuffle();
+	}
+	PieceType pop() {
+		m_size--;
+		PieceType piece = m_bag[m_size];
+		if (m_size == 0) {
+			m_size = 7;
+			shuffle();
+		}
+		return piece;
+	}
+	PieceType next() {
+		return m_bag[m_size - 1];
+	}
+private:
+	void shuffle() {
+		for (int i = 0; i < 7; i++) {
+			int j = random() % 7;
+
+			// swap
+			auto tmp = m_bag[i];
+			m_bag[i] = m_bag[j];
+			m_bag[j] = tmp;
+		}
+	}
+};
+
 class Tetris {
 private:
 	Playfield *m_playfield;
@@ -281,6 +318,7 @@ private:
 	u16 m_tid, m_sid[4], m_sid_ghost[4];
 	u8 m_rotation;
 	PieceType m_pieceType;
+	RandomBag m_bag;
 	u16 m_x, m_y;
 	u16 joy1_before;
 	bool use_ghost = true;
@@ -461,7 +499,7 @@ public:
 
 		m_x = m_playfield->startX();
 		m_y = m_playfield->startY();
-		m_pieceType = next();
+		m_pieceType = m_bag.pop();
 		m_rotation = 0;
 
 		for (int i = 0; i < 4; i++) {
@@ -472,7 +510,7 @@ public:
 	void updateNext() {
 		// repaint next
 		m_nextdisplay->fill(TILE_Empty);
-		auto type = next();
+		auto type = m_bag.next();
 		for (int i = 0; i < 4; i++) {
 			auto x = Offset[type][i][0];
 			auto y = Offset[type][i][1];
@@ -481,7 +519,8 @@ public:
 	}
 
 	PieceType next() {
-		return static_cast<PieceType>((m_pieceType + 1) % 7);
+		//return static_cast<PieceType>((m_pieceType + 1) % 7);
+		return m_bag.next();
 	}
 };
 
@@ -564,8 +603,8 @@ int main(int hardReset) {
 			if (cleared_lines) {
 				//SND_startPlay_PCM(reinterpret_cast<const u8*>(clear_data),
 				//		clear_length, SOUND_RATE_22050, SOUND_PAN_CENTER, 0);
-				SND_startPlay_4PCM(reinterpret_cast<const u8*>(clear_data), clear_length,
-							SOUND_PCM_CH2, 0);
+				SND_startPlay_4PCM(reinterpret_cast<const u8*>(clear_data),
+						clear_length, SOUND_PCM_CH2, 0);
 
 			}
 		}
